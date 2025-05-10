@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Product Detail</title>
+  <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css" />
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css" rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
+  <style>
+    #product-image:hover { transform: scale(1.05); }
+    .btn-black { background-color: black; color: white; border: none; padding: 10px 20px; }
+    .btn-black:hover { background-color: #333; }
+    .size-buttons button { margin: 3px; }
+    .size-buttons button.selected {
+      border: 2px solid black !important;
+      background-color: lightgray !important;
+    }
+    .button-container { margin-top: 20px; display: flex; gap: 10px; }
+  </style>
+</head>
+<body>
+  <!-- Navbar -->
+  <nav class="navbar navbar-expand-lg navbar-light bg-light fixed-top">
+    <a class="navbar-brand" href="index.html">StarBoii</a>
+    <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarNav"
+            aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
+      <span class="navbar-toggler-icon"></span>
+    </button>
+    <div class="collapse navbar-collapse" id="navbarNav">
+      <ul class="navbar-nav ml-auto">
+        <li class="nav-item">
+          <a class="nav-link" href="index.html">Home</a>
+        </li>
+        <li class="nav-item active">
+          <a class="nav-link" href="products.html">Products</a>
+        </li>
+        <li class="nav-item">
+          <a class="nav-link" href="cart.html">Cart (<span id="cart-item-count">0</span>)</a>
+        </li>
+        <li class="nav-item">
+          <a class="nav-link" href="contact.html">Contact Us</a>
+        </li>
+      </ul>
+      <form class="form-inline d-flex ml-lg-3" id="globalSearchForm">
+        <input class="form-control mr-2" type="search" placeholder="Search" aria-label="Search" style="max-width: 180px;">
+        <button class="btn btn-outline-dark" type="submit">Search</button>
+      </form>
+    </div>
+  </nav>
+
+  <!-- Cart Drawer -->
+  <div id="cart-drawer" class="cart-drawer">
+    <div class="cart-header d-flex justify-content-between align-items-center p-3">
+      <strong>Your Cart - <span id="drawer-cart-count">0</span></strong>
+      <button class="close-cart btn btn-link text-dark font-weight-bold">&times;</button>
+    </div>
+    <div id="drawer-cart-items" class="cart-body px-3"></div>
+    <div class="cart-footer p-3">
+      <p><strong>Estimated total:</strong> $<span id="drawer-cart-total">0.00</span></p>
+      <button class="btn btn-block btn-dark mb-2 checkout-btn">Checkout</button>
+      <button class="btn btn-link btn-sm text-muted continue-shopping">Continue Shopping</button>
+    </div>
+  </div>
+
+  <!-- Product Detail -->
+  <div class="container mt-5 pt-5">
+    <div class="row">
+      <div class="col-md-6">
+        <img id="product-image" src="" class="img-fluid rounded" alt="Product Image" />
+      </div>
+      <div class="col-md-6">
+        <h2 id="product-name">Product Name</h2>
+        <p id="product-description">Product description goes here</p>
+        <p class="font-weight-bold">Price: $<span id="product-price">0.00</span></p>
+
+        <div class="form-group">
+          <label>Available Sizes:</label>
+          <div class="size-buttons">
+            <button class="btn btn-outline-secondary btn-sm size-option" data-size="S">S</button>
+            <button class="btn btn-outline-secondary btn-sm size-option" data-size="M">M</button>
+            <button class="btn btn-outline-secondary btn-sm size-option" data-size="L">L</button>
+            <button class="btn btn-outline-secondary btn-sm size-option" data-size="XL">XL</button>
+            <button class="btn btn-outline-secondary btn-sm size-option" data-size="XXL">XXL</button>
+          </div>
+          <input type="hidden" id="selected-size" />
+        </div>
+
+        <div class="button-container">
+          <button id="add-to-cart-btn" class="btn btn-dark">Add to Cart</button>
+          <button id="continue-shopping-btn" class="btn btn-outline-dark">Continue Shopping</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Scripts -->
+  <script src="https://code.jquery.com/jquery-3.5.1.slim.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@4.5.2/dist/js/bootstrap.bundle.min.js"></script>
+  <script src="script.js"></script>
+
+  <script>
+    document.addEventListener('DOMContentLoaded', async () => {
+      const id = new URLSearchParams(window.location.search).get('id');
+      if (!id) return;
+
+      try {
+        const res = await fetch(`/api/products/${id}`);
+        const product = await res.json();
+
+        document.getElementById('product-name').textContent = product.name;
+        document.getElementById('product-description').textContent = product.description || '';
+        document.getElementById('product-price').textContent = parseFloat(product.price).toFixed(2);
+        document.getElementById('product-image').src = product.imageUrl || '';
+
+        const availableSizes = product.sizes || [];
+        document.querySelectorAll('.size-option').forEach(button => {
+          const size = button.dataset.size;
+          if (!availableSizes.includes(size)) {
+            button.disabled = true;
+            button.classList.add('disabled');
+          }
+        });
+
+        const selectedSizeInput = document.getElementById('selected-size');
+        let selectedSize = '';
+        document.querySelectorAll('.size-option').forEach(button => {
+          button.addEventListener('click', () => {
+            if (button.disabled) return;
+            document.querySelectorAll('.size-option').forEach(btn => btn.classList.remove('selected'));
+            button.classList.add('selected');
+            selectedSize = button.dataset.size;
+            selectedSizeInput.value = selectedSize;
+          });
+        });
+
+        document.getElementById('add-to-cart-btn').addEventListener('click', () => {
+          if (!selectedSize) {
+            alert('Please select a size.');
+            return;
+          }
+          addItemToCart(id, product.name, product.price, selectedSize, product.imageUrl);
+        });
+
+        document.getElementById('continue-shopping-btn').addEventListener('click', () => {
+          window.location.href = 'products.html';
+        });
+
+      } catch (err) {
+        console.error('Error loading product', err);
+        document.querySelector('.container').innerHTML = '<h3 class="text-danger text-center">Product not found.</h3>';
+      }
+
+      if (typeof updateCartDisplay === 'function') updateCartDisplay();
+      if (typeof setupCartDrawerEvents === 'function') setupCartDrawerEvents();
+    });
+  </script>
+</body>
+</html>

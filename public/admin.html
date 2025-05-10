@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Admin Dashboard - Clothez_Store</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-black text-white min-h-screen font-sans p-4">
+  <div class="max-w-4xl mx-auto">
+    <h1 class="text-3xl font-bold mb-6 text-center">Admin Dashboard</h1>
+
+    <!-- Product Upload Section -->
+    <section class="bg-white text-black p-6 rounded-lg shadow-md mb-10">
+      <h2 class="text-xl font-bold mb-4">Add New Product</h2>
+      <form id="productForm" enctype="multipart/form-data">
+        <div class="grid gap-4 md:grid-cols-2">
+          <input type="text" name="name" placeholder="Product Name" required class="border p-2 rounded"/>
+          <input type="number" name="price" step="0.01" placeholder="Price" required class="border p-2 rounded"/>
+          <textarea name="description" placeholder="Description" class="border p-2 rounded md:col-span-2"></textarea>
+          <input type="file" name="image" accept="image/*" class="border p-2 rounded md:col-span-2"/>
+          <input type="url" name="image_url" placeholder="Or provide Image URL" class="border p-2 rounded md:col-span-2"/>
+
+          <div class="md:col-span-2">
+            <label class="block mt-4 font-semibold">Available Sizes:</label>
+            <div class="flex flex-wrap gap-2 mt-2 mb-4">
+              <label><input type="checkbox" class="size-checkbox mr-1" value="S">S</label>
+              <label><input type="checkbox" class="size-checkbox mr-1" value="M">M</label>
+              <label><input type="checkbox" class="size-checkbox mr-1" value="L">L</label>
+              <label><input type="checkbox" class="size-checkbox mr-1" value="XL">XL</label>
+              <label><input type="checkbox" class="size-checkbox mr-1" value="XXL">XXL</label>
+            </div>
+          </div>
+        </div>
+        <button type="submit" class="mt-4 bg-black text-white px-6 py-2 rounded hover:bg-gray-800">Add Product</button>
+      </form>
+    </section>
+
+    <!-- Orders Section -->
+    <section id="orders">
+      <h2 class="text-xl font-bold mb-4">All Orders</h2>
+      <div class="overflow-x-auto bg-white rounded-lg shadow">
+        <table class="min-w-full text-sm text-left text-gray-700">
+          <thead class="bg-gray-100">
+            <tr>
+              <th class="px-4 py-2">Customer Name</th>
+              <th class="px-4 py-2">Email</th>
+              <th class="px-4 py-2">Phone</th>
+              <th class="px-4 py-2">Address</th>
+              <th class="px-4 py-2">Items</th>
+              <th class="px-4 py-2">Payment Proof</th>
+              <th class="px-4 py-2">Date</th>
+            </tr>
+          </thead>
+          <tbody id="ordersTableBody"></tbody>
+        </table>
+      </div>
+    </section>
+  </div>
+
+  <script>
+    document.getElementById('productForm').addEventListener('submit', async function(e) {
+      e.preventDefault();
+      const form = e.target;
+      const formData = new FormData(form);
+
+      // ✅ Collect selected sizes correctly
+      const sizes = [...form.querySelectorAll('.size-checkbox:checked')].map(cb => cb.value);
+      formData.append('sizes', JSON.stringify(sizes));
+
+      try {
+        const res = await fetch('/api/products', {
+          method: 'POST',
+          body: formData
+        });
+
+        const data = await res.json();
+        if (res.ok) {
+          alert(data.message || 'Product added successfully!');
+          form.reset();
+          loadOrders();
+        } else {
+          alert('❌ Failed to add product: ' + (data.error || 'Unknown error'));
+        }
+      } catch (err) {
+        alert('❌ Failed to add product due to a server error.');
+        console.error(err);
+      }
+    });
+
+  async function loadOrders() {
+  const res = await fetch('/api/admin/orders');
+  const orders = await res.json();
+  const tbody = document.getElementById('ordersTableBody');
+  tbody.innerHTML = '';
+
+  orders.forEach(order => {
+    const itemsHtml = order.items.map(i => `
+      <div class="flex items-center mb-2">
+        <img src="${i.image}" alt="${i.name}" class="w-10 h-10 object-cover mr-2 rounded" />
+        <div>
+          <div>${i.name} x${i.quantity}</div>
+          <div class="text-xs text-gray-500">Size: ${i.size || '-'}</div>
+        </div>
+      </div>
+    `).join('');
+
+    const row = document.createElement('tr');
+    row.innerHTML = `
+      <td class="border px-4 py-2">${order.fullName}</td>
+      <td class="border px-4 py-2">${order.email}</td>
+      <td class="border px-4 py-2">${order.phone}</td>
+      <td class="border px-4 py-2">${order.address}</td>
+      <td class="border px-4 py-2">${itemsHtml}</td>
+      <td class="border px-4 py-2">${order.paymentProof ? `<a href="${order.paymentProof}" target="_blank" class="text-blue-500 underline">View</a>` : '-'}</td>
+      <td class="border px-4 py-2">${new Date(order.createdAt).toLocaleString()}</td>
+    `;
+    tbody.appendChild(row);
+  });
+}
+
+    loadOrders();
+  </script>
+</body>
+</html>
