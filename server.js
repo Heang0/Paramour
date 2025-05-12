@@ -193,6 +193,11 @@ app.get('/api/admin/orders', async (req, res) => {
     res.status(500).json({ error: 'Failed to fetch orders' });
   }
 });
+// new 
+// Serve frontend index.html for any unknown route (for SPA support)
+app.get('*', (req, res) => {
+  res.sendFile(path.join(__dirname, 'public', 'index.html'));
+});
 
 // ✅ Start Server
 const PORT = process.env.PORT || 3000;
