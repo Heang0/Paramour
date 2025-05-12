@@ -87,16 +87,18 @@ app.post('/api/admin/login', (req, res) => {
   console.log("🔒 ENV password:", process.env.ADMIN_PASSWORD);
 
   if (
-    username === process.env.ADMIN_USERNAME &&
-    password === process.env.ADMIN_PASSWORD
+    username?.trim() === process.env.ADMIN_USERNAME &&
+    password?.trim() === process.env.ADMIN_PASSWORD
   ) {
     req.session.isAdmin = true;
+    console.log("✅ Login success!");
     res.json({ message: 'Logged in successfully' });
   } else {
-    console.warn("❌ Invalid login attempt.");
+    console.warn("❌ Login failed.");
     res.status(401).json({ error: 'Invalid credentials' });
   }
 });
+
 
 // ✅ Admin Logout
 app.post('/api/admin/logout', (req, res) => {
