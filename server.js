@@ -11,9 +11,10 @@ const app = express();
 
 // ✅ CORS: Allow any origin temporarily (safe fix for Render crash)
 app.use(cors({
-  origin: true,
+  origin: process.env.FRONTEND_URL || true,
   credentials: true
 }));
+
 
 // ✅ Middleware
 app.use(bodyParser.json());
