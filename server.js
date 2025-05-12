@@ -80,6 +80,12 @@ const Order = mongoose.model('Order', new mongoose.Schema({
 // ✅ Admin Login
 app.post('/api/admin/login', (req, res) => {
   const { username, password } = req.body;
+
+  console.log("🛂 Submitted username:", username);
+  console.log("🛂 Submitted password:", password);
+  console.log("🔒 ENV username:", process.env.ADMIN_USERNAME);
+  console.log("🔒 ENV password:", process.env.ADMIN_PASSWORD);
+
   if (
     username === process.env.ADMIN_USERNAME &&
     password === process.env.ADMIN_PASSWORD
@@ -87,6 +93,7 @@ app.post('/api/admin/login', (req, res) => {
     req.session.isAdmin = true;
     res.json({ message: 'Logged in successfully' });
   } else {
+    console.warn("❌ Invalid login attempt.");
     res.status(401).json({ error: 'Invalid credentials' });
   }
 });
