@@ -9,38 +9,39 @@ const path = require('path');
 
 const app = express();
 
-// Enable CORS with credentials
+// ✅ CORS: Allow any origin temporarily (safe fix for Render crash)
 app.use(cors({
   origin: true,
   credentials: true
 }));
 
-
-// Middleware
+// ✅ Middleware
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));
+
+// ✅ Static folders
 app.use('/uploads', express.static(path.join(__dirname, 'public/uploads')));
 app.use(express.static(path.join(__dirname, 'public')));
 
-// ✅ Session middleware
+// ✅ Session setup
 app.use(session({
-  secret: process.env.SESSION_SECRET || 'defaultsecret',
+  secret: process.env.SESSION_SECRET || 'default_secret',
   resave: false,
   saveUninitialized: false,
   cookie: {
     httpOnly: true,
-    sameSite: 'lax' // or 'none' if you're using HTTPS
+    sameSite: 'lax' // or 'none' if using HTTPS only
   }
 }));
 
-// ✅ MongoDB
+// ✅ Connect to MongoDB
 mongoose.connect(process.env.MONGODB_URI, {
   useNewUrlParser: true,
   useUnifiedTopology: true
 }).then(() => console.log("✅ Connected to MongoDB"))
   .catch(err => console.error("❌ MongoDB error:", err));
 
-// ✅ Multer
+// ✅ Multer setup
 const storage = multer.diskStorage({
   destination: (req, file, cb) => cb(null, 'public/uploads/'),
   filename: (req, file, cb) => {
@@ -91,16 +92,15 @@ app.post('/api/admin/login', (req, res) => {
     password?.trim() === process.env.ADMIN_PASSWORD
   ) {
     req.session.isAdmin = true;
-    console.log("✅ Login success!");
+    console.log("✅ Login successful");
     res.json({ message: 'Logged in successfully' });
   } else {
-    console.warn("❌ Login failed.");
+    console.warn("❌ Login failed: Invalid credentials");
     res.status(401).json({ error: 'Invalid credentials' });
   }
 });
 
-
-// ✅ Admin Logout
+// ✅ Logout
 app.post('/api/admin/logout', (req, res) => {
   req.session.destroy(() => {
     res.clearCookie('connect.sid');
@@ -108,12 +108,12 @@ app.post('/api/admin/logout', (req, res) => {
   });
 });
 
-// ✅ Check Auth
+// ✅ Auth check
 app.get('/api/admin/check-auth', (req, res) => {
   res.json({ authenticated: req.session.isAdmin === true });
 });
 
-// ✅ Products API
+// ✅ Product APIs
 app.post('/api/products', upload.single('image'), async (req, res) => {
   try {
     const { name, price, description } = req.body;
@@ -165,7 +165,7 @@ app.get('/api/products/:id', async (req, res) => {
   }
 });
 
-// ✅ Orders
+// ✅ Order APIs
 app.post('/api/orders', async (req, res) => {
   try {
     const {
@@ -183,8 +183,7 @@ app.post('/api/orders', async (req, res) => {
       address: customerAddress,
       phone: customerPhone,
       paymentProof,
-      items,
-      createdAt: new Date()
+      items
     });
 
     await order.save();
@@ -203,14 +202,14 @@ app.get('/api/admin/orders', async (req, res) => {
     res.status(500).json({ error: 'Failed to fetch orders' });
   }
 });
-// new 
-// Serve frontend index.html for any unknown route (for SPA support)
+
+// ✅ Catch-all route to serve frontend (for React or HTML)
 app.get('*', (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'index.html'));
 });
 
-// ✅ Start Server
+// ✅ Start server
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
-  console.log(`🚀 Server running at http://localhost:${PORT}`);
+  console.log(`🚀 Server running on port ${PORT}`);
 });
