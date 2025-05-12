@@ -165,8 +165,7 @@ function fetchProducts() {
                     imageUrl = 'https://via.placeholder.com/200x200?text=No+Image'
                 } = product;
 
-                const productCard = document.createElement('div');
-                productCard.className = 'col-6 col-md-4 col-lg-3 mb-4 product-card';
+              productCard.className = 'product-card';
 
                 productCard.innerHTML = `
                     <div class="card border-0 shadow-sm h-100">
