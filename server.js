@@ -11,9 +11,10 @@ const app = express();
 
 // Enable CORS with credentials
 app.use(cors({
-  origin: 'http://localhost:3000', // Change if your frontend is on another origin
+  origin: process.env.FRONTEND_URL || true,
   credentials: true
 }));
+
 
 // Middleware
 app.use(bodyParser.json());
