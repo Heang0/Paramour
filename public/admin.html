@@ -8,63 +8,150 @@
 </head>
 <body class="bg-black text-white min-h-screen font-sans p-4">
   <div class="max-w-4xl mx-auto">
-    <h1 class="text-3xl font-bold mb-6 text-center">Admin Dashboard</h1>
 
-    <!-- Product Upload Section -->
-    <section class="bg-white text-black p-6 rounded-lg shadow-md mb-10">
-      <h2 class="text-xl font-bold mb-4">Add New Product</h2>
-      <form id="productForm" enctype="multipart/form-data">
-        <div class="grid gap-4 md:grid-cols-2">
-          <input type="text" name="name" placeholder="Product Name" required class="border p-2 rounded"/>
-          <input type="number" name="price" step="0.01" placeholder="Price" required class="border p-2 rounded"/>
-          <textarea name="description" placeholder="Description" class="border p-2 rounded md:col-span-2"></textarea>
-          <input type="file" name="image" accept="image/*" class="border p-2 rounded md:col-span-2"/>
-          <input type="url" name="image_url" placeholder="Or provide Image URL" class="border p-2 rounded md:col-span-2"/>
-
-          <div class="md:col-span-2">
-            <label class="block mt-4 font-semibold">Available Sizes:</label>
-            <div class="flex flex-wrap gap-2 mt-2 mb-4">
-              <label><input type="checkbox" class="size-checkbox mr-1" value="S">S</label>
-              <label><input type="checkbox" class="size-checkbox mr-1" value="M">M</label>
-              <label><input type="checkbox" class="size-checkbox mr-1" value="L">L</label>
-              <label><input type="checkbox" class="size-checkbox mr-1" value="XL">XL</label>
-              <label><input type="checkbox" class="size-checkbox mr-1" value="XXL">XXL</label>
-            </div>
-          </div>
-        </div>
-        <button type="submit" class="mt-4 bg-black text-white px-6 py-2 rounded hover:bg-gray-800">Add Product</button>
+    <!-- Login Section -->
+    <section id="login-section" class="bg-white text-black p-6 rounded shadow-md max-w-md mx-auto mt-20">
+      <h2 class="text-2xl font-bold mb-4 text-center">Admin Login</h2>
+      <form id="adminLoginForm" class="space-y-4">
+        <input type="text" name="username" placeholder="Username" required class="w-full p-2 border rounded" />
+        <input type="password" name="password" placeholder="Password" required class="w-full p-2 border rounded" />
+        <button type="submit" class="w-full bg-black text-white px-4 py-2 rounded hover:bg-gray-800">Login</button>
+        <p id="login-error" class="text-red-500 text-sm hidden text-center mt-2">Invalid credentials</p>
       </form>
     </section>
 
-    <!-- Orders Section -->
-    <section id="orders">
-      <h2 class="text-xl font-bold mb-4">All Orders</h2>
-      <div class="overflow-x-auto bg-white rounded-lg shadow">
-        <table class="min-w-full text-sm text-left text-gray-700">
-          <thead class="bg-gray-100">
-            <tr>
-              <th class="px-4 py-2">Customer Name</th>
-              <th class="px-4 py-2">Email</th>
-              <th class="px-4 py-2">Phone</th>
-              <th class="px-4 py-2">Address</th>
-              <th class="px-4 py-2">Items</th>
-              <th class="px-4 py-2">Payment Proof</th>
-              <th class="px-4 py-2">Date</th>
-            </tr>
-          </thead>
-          <tbody id="ordersTableBody"></tbody>
-        </table>
+    <!-- Admin Panel -->
+    <div id="admin-panel" class="hidden">
+
+      <div class="flex justify-between items-center mb-6">
+        <h1 class="text-3xl font-bold text-center flex-1">Admin Dashboard</h1>
+        <button id="logoutBtn" class="bg-red-600 text-white px-4 py-2 rounded hover:bg-red-700">Logout</button>
       </div>
-    </section>
+
+      <!-- Product Upload -->
+      <section class="bg-white text-black p-6 rounded-lg shadow-md mb-10">
+        <h2 class="text-xl font-bold mb-4">Add New Product</h2>
+        <form id="productForm" enctype="multipart/form-data">
+          <div class="grid gap-4 md:grid-cols-2">
+            <input type="text" name="name" placeholder="Product Name" required class="border p-2 rounded"/>
+            <input type="number" name="price" step="0.01" placeholder="Price" required class="border p-2 rounded"/>
+            <textarea name="description" placeholder="Description" class="border p-2 rounded md:col-span-2"></textarea>
+            <input type="file" name="image" accept="image/*" class="border p-2 rounded md:col-span-2"/>
+            <input type="url" name="image_url" placeholder="Or provide Image URL" class="border p-2 rounded md:col-span-2"/>
+
+            <div class="md:col-span-2">
+              <label class="block mt-4 font-semibold">Available Sizes:</label>
+              <div class="flex flex-wrap gap-2 mt-2 mb-4">
+                <label><input type="checkbox" class="size-checkbox mr-1" value="S">S</label>
+                <label><input type="checkbox" class="size-checkbox mr-1" value="M">M</label>
+                <label><input type="checkbox" class="size-checkbox mr-1" value="L">L</label>
+                <label><input type="checkbox" class="size-checkbox mr-1" value="XL">XL</label>
+                <label><input type="checkbox" class="size-checkbox mr-1" value="XXL">XXL</label>
+              </div>
+            </div>
+          </div>
+          <button type="submit" class="mt-4 bg-black text-white px-6 py-2 rounded hover:bg-gray-800">Add Product</button>
+        </form>
+      </section>
+
+      <!-- Orders Section -->
+      <section id="orders">
+        <h2 class="text-xl font-bold mb-4">All Orders</h2>
+        <div class="overflow-x-auto bg-white rounded-lg shadow">
+          <table class="min-w-full text-sm text-left text-gray-700">
+            <thead class="bg-gray-100">
+              <tr>
+                <th class="px-4 py-2">Customer Name</th>
+                <th class="px-4 py-2">Email</th>
+                <th class="px-4 py-2">Phone</th>
+                <th class="px-4 py-2">Address</th>
+                <th class="px-4 py-2">Items</th>
+                <th class="px-4 py-2">Payment Proof</th>
+                <th class="px-4 py-2">Date</th>
+              </tr>
+            </thead>
+            <tbody id="ordersTableBody"></tbody>
+          </table>
+        </div>
+      </section>
+    </div>
+  </div>
+
+  <!-- Modal for viewing payment proof -->
+  <div id="proof-modal" class="fixed inset-0 bg-black bg-opacity-80 flex items-center justify-center hidden z-50">
+    <div class="relative max-w-xl">
+      <img id="proof-modal-img" src="" alt="Payment Proof" class="max-h-[80vh] max-w-full rounded shadow-lg" />
+      <button onclick="closeProofModal()" class="absolute top-2 right-2 bg-white text-black px-3 py-1 rounded-full font-bold text-lg">&times;</button>
+    </div>
   </div>
 
   <script>
+    function openProofModal(imgUrl) {
+      document.getElementById('proof-modal-img').src = imgUrl;
+      document.getElementById('proof-modal').classList.remove('hidden');
+    }
+
+    function closeProofModal() {
+      document.getElementById('proof-modal').classList.add('hidden');
+    }
+
+    document.addEventListener('DOMContentLoaded', async () => {
+      const loginSection = document.getElementById('login-section');
+      const adminPanel = document.getElementById('admin-panel');
+      const errorMsg = document.getElementById('login-error');
+
+      // Check session
+      const authRes = await fetch('/api/admin/check-auth', { credentials: 'include' });
+      const authData = await authRes.json();
+      if (authData.authenticated) {
+        loginSection.classList.add('hidden');
+        adminPanel.classList.remove('hidden');
+        loadOrders();
+      }
+
+      // Login form
+      document.getElementById('adminLoginForm').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        errorMsg.classList.add('hidden');
+        const formData = new FormData(e.target);
+        const res = await fetch('/api/admin/login', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          credentials: 'include',
+          body: JSON.stringify({
+            username: formData.get('username'),
+            password: formData.get('password')
+          })
+        });
+
+        if (res.ok) {
+          loginSection.classList.add('hidden');
+          adminPanel.classList.remove('hidden');
+          loadOrders();
+        } else {
+          errorMsg.classList.remove('hidden');
+        }
+      });
+
+      // Logout
+      document.getElementById('logoutBtn').addEventListener('click', async () => {
+        const res = await fetch('/api/admin/logout', {
+          method: 'POST',
+          credentials: 'include'
+        });
+        if (res.ok) {
+          location.reload();
+        } else {
+          alert('Logout failed');
+        }
+      });
+    });
+
+    // Handle product submission
     document.getElementById('productForm').addEventListener('submit', async function(e) {
       e.preventDefault();
       const form = e.target;
       const formData = new FormData(form);
-
-      // ✅ Collect selected sizes correctly
       const sizes = [...form.querySelectorAll('.size-checkbox:checked')].map(cb => cb.value);
       formData.append('sizes', JSON.stringify(sizes));
 
@@ -73,7 +160,6 @@
           method: 'POST',
           body: formData
         });
-
         const data = await res.json();
         if (res.ok) {
           alert(data.message || 'Product added successfully!');
@@ -88,38 +174,41 @@
       }
     });
 
-  async function loadOrders() {
-  const res = await fetch('/api/admin/orders');
-  const orders = await res.json();
-  const tbody = document.getElementById('ordersTableBody');
-  tbody.innerHTML = '';
+    // Load orders with payment proof
+    async function loadOrders() {
+      const res = await fetch('/api/admin/orders');
+      const orders = await res.json();
+      const tbody = document.getElementById('ordersTableBody');
+      tbody.innerHTML = '';
 
-  orders.forEach(order => {
-    const itemsHtml = order.items.map(i => `
-      <div class="flex items-center mb-2">
-        <img src="${i.image}" alt="${i.name}" class="w-10 h-10 object-cover mr-2 rounded" />
-        <div>
-          <div>${i.name} x${i.quantity}</div>
-          <div class="text-xs text-gray-500">Size: ${i.size || '-'}</div>
-        </div>
-      </div>
-    `).join('');
+      orders.forEach(order => {
+        const itemsHtml = order.items.map(i => `
+          <div class="flex items-center mb-2">
+            <img src="${i.image}" alt="${i.name}" class="w-10 h-10 object-cover mr-2 rounded" />
+            <div>
+              <div>${i.name} x${i.quantity}</div>
+              <div class="text-xs text-gray-500">Size: ${i.size || '-'}</div>
+            </div>
+          </div>
+        `).join('');
 
-    const row = document.createElement('tr');
-    row.innerHTML = `
-      <td class="border px-4 py-2">${order.fullName}</td>
-      <td class="border px-4 py-2">${order.email}</td>
-      <td class="border px-4 py-2">${order.phone}</td>
-      <td class="border px-4 py-2">${order.address}</td>
-      <td class="border px-4 py-2">${itemsHtml}</td>
-      <td class="border px-4 py-2">${order.paymentProof ? `<a href="${order.paymentProof}" target="_blank" class="text-blue-500 underline">View</a>` : '-'}</td>
-      <td class="border px-4 py-2">${new Date(order.createdAt).toLocaleString()}</td>
-    `;
-    tbody.appendChild(row);
-  });
-}
-
-    loadOrders();
+        const row = document.createElement('tr');
+        row.innerHTML = `
+          <td class="border px-4 py-2">${order.fullName}</td>
+          <td class="border px-4 py-2">${order.email}</td>
+          <td class="border px-4 py-2">${order.phone}</td>
+          <td class="border px-4 py-2">${order.address}</td>
+          <td class="border px-4 py-2">${itemsHtml}</td>
+          <td class="border px-4 py-2">
+            ${order.paymentProof
+              ? `<button onclick="openProofModal('${order.paymentProof}')" class="text-blue-500 underline">View</button>`
+              : '-'}
+          </td>
+          <td class="border px-4 py-2">${new Date(order.createdAt).toLocaleString()}</td>
+        `;
+        tbody.appendChild(row);
+      });
+    }
   </script>
 </body>
 </html>

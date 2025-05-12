@@ -4,23 +4,42 @@ const mongoose = require('mongoose');
 const bodyParser = require('body-parser');
 const multer = require('multer');
 const cors = require('cors');
+const session = require('express-session');
 const path = require('path');
 
 const app = express();
-app.use(cors());
+
+// Enable CORS with credentials
+app.use(cors({
+  origin: 'http://localhost:3000', // Change if your frontend is on another origin
+  credentials: true
+}));
+
+// Middleware
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));
 app.use('/uploads', express.static(path.join(__dirname, 'public/uploads')));
 app.use(express.static(path.join(__dirname, 'public')));
 
-// ✅ Connect MongoDB
+// ✅ Session middleware
+app.use(session({
+  secret: process.env.SESSION_SECRET || 'defaultsecret',
+  resave: false,
+  saveUninitialized: false,
+  cookie: {
+    httpOnly: true,
+    sameSite: 'lax' // or 'none' if you're using HTTPS
+  }
+}));
+
+// ✅ MongoDB
 mongoose.connect(process.env.MONGODB_URI, {
   useNewUrlParser: true,
   useUnifiedTopology: true
 }).then(() => console.log("✅ Connected to MongoDB"))
   .catch(err => console.error("❌ MongoDB error:", err));
 
-// ✅ Multer setup for uploads
+// ✅ Multer
 const storage = multer.diskStorage({
   destination: (req, file, cb) => cb(null, 'public/uploads/'),
   filename: (req, file, cb) => {
@@ -30,7 +49,7 @@ const storage = multer.diskStorage({
 });
 const upload = multer({ storage });
 
-// ✅ Product Schema
+// ✅ Schemas
 const Product = mongoose.model('Product', new mongoose.Schema({
   name: String,
   price: Number,
@@ -40,7 +59,6 @@ const Product = mongoose.model('Product', new mongoose.Schema({
   createdAt: { type: Date, default: Date.now }
 }));
 
-// ✅ Order Schema
 const Order = mongoose.model('Order', new mongoose.Schema({
   fullName: String,
   email: String,
@@ -58,7 +76,34 @@ const Order = mongoose.model('Order', new mongoose.Schema({
   createdAt: { type: Date, default: Date.now }
 }));
 
-// ✅ POST /api/products
+// ✅ Admin Login
+app.post('/api/admin/login', (req, res) => {
+  const { username, password } = req.body;
+  if (
+    username === process.env.ADMIN_USERNAME &&
+    password === process.env.ADMIN_PASSWORD
+  ) {
+    req.session.isAdmin = true;
+    res.json({ message: 'Logged in successfully' });
+  } else {
+    res.status(401).json({ error: 'Invalid credentials' });
+  }
+});
+
+// ✅ Admin Logout
+app.post('/api/admin/logout', (req, res) => {
+  req.session.destroy(() => {
+    res.clearCookie('connect.sid');
+    res.json({ message: 'Logged out' });
+  });
+});
+
+// ✅ Check Auth
+app.get('/api/admin/check-auth', (req, res) => {
+  res.json({ authenticated: req.session.isAdmin === true });
+});
+
+// ✅ Products API
 app.post('/api/products', upload.single('image'), async (req, res) => {
   try {
     const { name, price, description } = req.body;
@@ -91,7 +136,6 @@ app.post('/api/products', upload.single('image'), async (req, res) => {
   }
 });
 
-// ✅ GET /api/products
 app.get('/api/products', async (req, res) => {
   try {
     const products = await Product.find().sort({ createdAt: -1 });
@@ -101,7 +145,6 @@ app.get('/api/products', async (req, res) => {
   }
 });
 
-// ✅ GET /api/products/:id
 app.get('/api/products/:id', async (req, res) => {
   try {
     const product = await Product.findById(req.params.id);
@@ -112,7 +155,7 @@ app.get('/api/products/:id', async (req, res) => {
   }
 });
 
-// ✅ POST /api/orders
+// ✅ Orders
 app.post('/api/orders', async (req, res) => {
   try {
     const {
@@ -142,7 +185,6 @@ app.post('/api/orders', async (req, res) => {
   }
 });
 
-// ✅ GET /api/admin/orders
 app.get('/api/admin/orders', async (req, res) => {
   try {
     const orders = await Order.find().sort({ createdAt: -1 });
@@ -152,7 +194,7 @@ app.get('/api/admin/orders', async (req, res) => {
   }
 });
 
-// ✅ Start server
+// ✅ Start Server
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
   console.log(`🚀 Server running at http://localhost:${PORT}`);
