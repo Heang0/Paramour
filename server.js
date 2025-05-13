@@ -6,6 +6,7 @@ const multer = require('multer');
 const cors = require('cors');
 const session = require('express-session');
 const path = require('path');
+const fs = require('fs'); // For file system operations
 
 const app = express();
 
@@ -14,7 +15,6 @@ app.use(cors({
   origin: process.env.FRONTEND_URL || true,
   credentials: true
 }));
-
 
 // ✅ Middleware
 app.use(bodyParser.json());
@@ -42,9 +42,33 @@ mongoose.connect(process.env.MONGODB_URI, {
 }).then(() => console.log("✅ Connected to MongoDB"))
   .catch(err => console.error("❌ MongoDB error:", err));
 
-// ✅ Multer setup
+// ✅ Multer setup for payment proof uploads
+const paymentProofStorage = multer.diskStorage({
+  destination: (req, file, cb) => {
+    const uploadPath = 'public/uploads/payment_proofs/';
+    // Create the directory if it doesn't exist
+    if (!fs.existsSync(uploadPath)) {
+      fs.mkdirSync(uploadPath, { recursive: true });
+    }
+    cb(null, uploadPath);
+  },
+  filename: (req, file, cb) => {
+    const unique = Date.now() + '-' + Math.round(Math.random() * 1e9);
+    cb(null, 'payment_proof_' + unique + path.extname(file.originalname));
+  }
+});
+const uploadPaymentProof = multer({ storage: paymentProofStorage });
+
+// ✅ Multer setup for product images (existing)
 const storage = multer.diskStorage({
-  destination: (req, file, cb) => cb(null, 'public/uploads/'),
+  destination: (req, file, cb) => {
+    const uploadPath = 'public/uploads/';
+    // Create the directory if it doesn't exist
+    if (!fs.existsSync(uploadPath)) {
+      fs.mkdirSync(uploadPath, { recursive: true });
+    }
+    cb(null, uploadPath);
+  },
   filename: (req, file, cb) => {
     const unique = Date.now() + '-' + Math.round(Math.random() * 1e9);
     cb(null, unique + path.extname(file.originalname));
@@ -67,7 +91,7 @@ const Order = mongoose.model('Order', new mongoose.Schema({
   email: String,
   address: String,
   phone: String,
-  paymentProof: String,
+  paymentProof: String, // Store file path
   items: [{
     productId: String,
     name: String,
@@ -79,7 +103,12 @@ const Order = mongoose.model('Order', new mongoose.Schema({
   createdAt: { type: Date, default: Date.now }
 }));
 
-// ✅ Admin Login
+const Admin = mongoose.model('Admin', new mongoose.Schema({
+  username: { type: String, required: true, unique: true },
+  password: { type: String, required: true }
+}));
+
+// ✅ Admin Login (unchanged)
 app.post('/api/admin/login', (req, res) => {
   const { username, password } = req.body;
 
@@ -101,7 +130,7 @@ app.post('/api/admin/login', (req, res) => {
   }
 });
 
-// ✅ Logout
+// ✅ Logout (unchanged)
 app.post('/api/admin/logout', (req, res) => {
   req.session.destroy(() => {
     res.clearCookie('connect.sid');
@@ -109,12 +138,12 @@ app.post('/api/admin/logout', (req, res) => {
   });
 });
 
-// ✅ Auth check
+// ✅ Auth check (unchanged)
 app.get('/api/admin/check-auth', (req, res) => {
   res.json({ authenticated: req.session.isAdmin === true });
 });
 
-// ✅ Product APIs
+// ✅ Product APIs (unchanged, but added error logging)
 app.post('/api/products', upload.single('image'), async (req, res) => {
   try {
     const { name, price, description } = req.body;
@@ -123,7 +152,8 @@ app.post('/api/products', upload.single('image'), async (req, res) => {
     try {
       sizes = JSON.parse(req.body.sizes);
       if (!Array.isArray(sizes)) throw new Error();
-    } catch {
+    } catch (err) {
+      console.error("❌ Error parsing sizes:", err);
       if (typeof req.body.sizes === 'string') {
         sizes = req.body.sizes.split(',').map(s => s.trim());
       }
@@ -152,6 +182,7 @@ app.get('/api/products', async (req, res) => {
     const products = await Product.find().sort({ createdAt: -1 });
     res.json(products);
   } catch (err) {
+    console.error('❌ Error fetching products:', err);
     res.status(500).json({ error: 'Failed to fetch products' });
   }
 });
@@ -162,29 +193,49 @@ app.get('/api/products/:id', async (req, res) => {
     if (!product) return res.status(404).json({ error: 'Product not found' });
     res.json(product);
   } catch (err) {
+    console.error('❌ Error fetching product by ID:', err);
     res.status(500).json({ error: 'Error fetching product' });
   }
 });
 
-// ✅ Order APIs
-app.post('/api/orders', async (req, res) => {
+// ✅ Order APIs (Updated for file upload)
+app.post('/api/orders', uploadPaymentProof.single('paymentProof'), async (req, res) => {
   try {
     const {
       customerName,
       customerEmail,
       customerAddress,
       customerPhone,
-      items,
-      paymentProof
+      items
     } = req.body;
+
+    // Parse the items string back to a JSON object
+    let parsedItems;
+    try {
+      parsedItems = JSON.parse(items);
+    } catch (parseError) {
+      console.error("❌ Error parsing items:", parseError);
+      return res.status(400).json({ error: "Invalid items format" });
+    }
+
+    if (!Array.isArray(parsedItems)) {
+      return res.status(400).json({ error: "Items must be an array" });
+    }
+
+    let paymentProofPath = null;
+    if (req.file) {
+      paymentProofPath = '/uploads/payment_proofs/' + req.file.filename;
+    } else {
+      return res.status(400).json({ error: 'Payment proof is required' });
+    }
 
     const order = new Order({
       fullName: customerName,
       email: customerEmail,
       address: customerAddress,
       phone: customerPhone,
-      paymentProof,
-      items
+      paymentProof: paymentProofPath,
+      items: parsedItems
     });
 
     await order.save();
@@ -200,16 +251,17 @@ app.get('/api/admin/orders', async (req, res) => {
     const orders = await Order.find().sort({ createdAt: -1 });
     res.json(orders);
   } catch (err) {
+    console.error('❌ Error fetching admin orders:', err);
     res.status(500).json({ error: 'Failed to fetch orders' });
   }
 });
 
-// ✅ Catch-all route to serve frontend (for React or HTML)
+// ✅ Catch-all route to serve frontend (for React or HTML) (unchanged)
 app.get('*', (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'index.html'));
 });
 
-// ✅ Start server
+// ✅ Start server (unchanged)
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
   console.log(`🚀 Server running on port ${PORT}`);

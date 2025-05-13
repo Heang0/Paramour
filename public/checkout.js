@@ -88,46 +88,44 @@ async function handleOrderSubmit(e) {
     return;
   }
 
-  const reader = new FileReader();
-  reader.onloadend = async () => {
-    const base64Image = reader.result;
-    const total = cart.reduce((sum, item) => sum + item.price * item.quantity, 0);
+  const total = cart.reduce((sum, item) => sum + item.price * item.quantity, 0);
 
-    const orderData = {
-      customerName,
-      customerEmail,
-      customerAddress,
-      customerPhone,
-      paymentProof: base64Image,
-      items: cart.map(item => ({
-        productId: item.id,
-        name: item.name,
-        quantity: item.quantity,
-        price: item.price,
-        size: item.size,
-        image: item.image || ''
-      })),
-      total
-    };
-
-    try {
-      const res = await fetch('/api/orders', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(orderData)
-      });
-
-      const result = await res.json();
-      if (!res.ok) throw new Error(result.error || 'Order submission failed.');
-
-      showConfirmation(result.orderId, orderData);
-    } catch (err) {
-      document.getElementById('order-error').classList.remove('d-none');
-      document.getElementById('error-message').textContent = err.message;
-    }
+  const orderData = {
+    customerName,
+    customerEmail,
+    customerAddress,
+    customerPhone,
+    items: cart.map(item => ({
+      productId: item.id,
+      name: item.name,
+      quantity: item.quantity,
+      price: item.price,
+      size: item.size,
+      image: item.image || ''
+    })),
+    total
   };
 
-  reader.readAsDataURL(paymentScreenshot);
+  const formData = new FormData();
+  for (const key in orderData) {
+    formData.append(key, JSON.stringify(orderData[key])); // Stringify nested objects
+  }
+  formData.append('paymentProof', paymentScreenshot); // Append the file
+
+  try {
+    const res = await fetch('/api/orders', {
+      method: 'POST',
+      body: formData, // Send FormData, not JSON
+    });
+
+    const result = await res.json();
+    if (!res.ok) throw new Error(result.error || 'Order submission failed.');
+
+    showConfirmation(result.orderId, orderData);
+  } catch (err) {
+    document.getElementById('order-error').classList.remove('d-none');
+    document.getElementById('error-message').textContent = err.message;
+  }
 }
 
 function showConfirmation(orderId, orderData) {
