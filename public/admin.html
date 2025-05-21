@@ -120,19 +120,20 @@
                 <button id="logoutBtn" class="logout-button px-4 py-2 rounded hover:bg-red-700">Logout</button>
             </div>
 
-            <section class="admin-card p-6 rounded-lg shadow-md mb-8">
+       <section class="admin-card p-6 rounded-lg shadow-md mb-8">
                 <h2 class="text-xl font-bold mb-4 admin-heading">Add New Product</h2>
                 <form id="productForm" enctype="multipart/form-data" class="grid gap-4 md:grid-cols-2 lg:grid-cols-3 admin-form">
                     <input type="text" name="name" placeholder="Product Name" required class="border p-2 rounded col-span-full md:col-span-1 lg:col-span-1 text-black" />
                     <input type="number" name="price" step="0.01" placeholder="Price" required class="border p-2 rounded col-span-full md:col-span-1 lg:col-span-1 text-black" />
                     <textarea name="description" placeholder="Description" class="border p-2 rounded col-span-full text-black"></textarea>
+
                     <div class="col-span-full md:col-span-1 lg:col-span-1">
-                        <label for="image" class="block text-gray-400 text-sm font-bold mb-2">Product Image</label>
-                        <input type="file" name="image" accept="image/*" class="border p-2 rounded w-full text-gray-400" id="image" />
+                        <label for="main_image" class="block text-gray-400 text-sm font-bold mb-2">Product Image (Main)</label>
+                        <input type="file" name="main_image" accept="image/*" class="border p-2 rounded w-full text-gray-400" id="main_image" />
                     </div>
-                    <div>
-                        <label for="image_url" class="block text-gray-400 text-sm font-bold mb-1">Or provide Image URL</label>
-                        <input type="url" name="image_url" placeholder="Image URL" class="w-full border p-2 rounded text-black" id="image_url" />
+                    <div class="col-span-full md:col-span-1 lg:col-span-1">
+                        <label for="carousel_images" class="block text-gray-400 text-sm font-bold mb-2">Product Images (Carousel - Multiple)</label>
+                        <input type="file" name="carousel_images" multiple accept="image/*" class="border p-2 rounded w-full text-gray-400" id="carousel_images" />
                     </div>
                     <div class="col-span-full">
                         <label class="block mt-2 font-semibold text-gray-400">Available Sizes:</label>
@@ -177,130 +178,134 @@
         </div>
     </div>
 
-    <script>
-        function openProofModal(imgUrl) {
-            document.getElementById('proof-modal-img').src = imgUrl;
-            document.getElementById('proof-modal').classList.remove('hidden');
+   <script>
+    function openProofModal(imgUrl) {
+        document.getElementById('proof-modal-img').src = imgUrl;
+        document.getElementById('proof-modal').classList.remove('hidden');
+    }
+
+    function closeProofModal() {
+        document.getElementById('proof-modal').classList.add('hidden');
+    }
+
+    document.addEventListener('DOMContentLoaded', async () => {
+        const loginSection = document.getElementById('login-section');
+        const adminPanel = document.getElementById('admin-panel');
+        const errorMsg = document.getElementById('login-error');
+
+        // --- ADD THIS LINE ---
+        errorMsg.classList.add('hidden'); // Ensure error message is hidden on page load
+        // ---------------------
+
+        // Check session
+        const authRes = await fetch('/api/admin/check-auth', { credentials: 'include' });
+        const authData = await authRes.json();
+        if (authData.authenticated) {
+            loginSection.classList.add('hidden');
+            adminPanel.classList.remove('hidden');
+            loadOrders();
         }
 
-        function closeProofModal() {
-            document.getElementById('proof-modal').classList.add('hidden');
-        }
+        // Login form
+        document.getElementById('adminLoginForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            errorMsg.classList.add('hidden'); // Hide it on new submission attempt
+            const formData = new FormData(e.target);
+            const res = await fetch('/api/admin/login', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                credentials: 'include',
+                body: JSON.stringify({
+                    username: formData.get('username'),
+                    password: formData.get('password')
+                })
+            });
 
-        document.addEventListener('DOMContentLoaded', async () => {
-            const loginSection = document.getElementById('login-section');
-            const adminPanel = document.getElementById('admin-panel');
-            const errorMsg = document.getElementById('login-error');
-
-            // Check session
-            const authRes = await fetch('/api/admin/check-auth', { credentials: 'include' });
-            const authData = await authRes.json();
-            if (authData.authenticated) {
+            if (res.ok) {
                 loginSection.classList.add('hidden');
                 adminPanel.classList.remove('hidden');
                 loadOrders();
-            }
-
-            // Login form
-            document.getElementById('adminLoginForm').addEventListener('submit', async (e) => {
-                e.preventDefault();
-                errorMsg.classList.add('hidden');
-                const formData = new FormData(e.target);
-                const res = await fetch('/api/admin/login', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    credentials: 'include',
-                    body: JSON.stringify({
-                        username: formData.get('username'),
-                        password: formData.get('password')
-                    })
-                });
-
-                if (res.ok) {
-                    loginSection.classList.add('hidden');
-                    adminPanel.classList.remove('hidden');
-                    loadOrders();
-                } else {
-                    errorMsg.classList.remove('hidden');
-                }
-            });
-
-            // Logout
-            document.getElementById('logoutBtn').addEventListener('click', async () => {
-                const res = await fetch('/api/admin/logout', {
-                    method: 'POST',
-                    credentials: 'include'
-                });
-                if (res.ok) {
-                    location.reload();
-                } else {
-                    alert('Logout failed');
-                }
-            });
-        });
-
-        // Handle product submission
-        document.getElementById('productForm').addEventListener('submit', async function(e) {
-            e.preventDefault();
-            const form = e.target;
-            const formData = new FormData(form);
-            const sizes = [...form.querySelectorAll('.size-checkbox:checked')].map(cb => cb.value);
-            formData.append('sizes', JSON.stringify(sizes));
-
-            try {
-                const res = await fetch('/api/products', {
-                    method: 'POST',
-                    body: formData
-                });
-                const data = await res.json();
-                if (res.ok) {
-                    alert(data.message || 'Product added successfully!');
-                    form.reset();
-                    loadOrders();
-                } else {
-                    alert('❌ Failed to add product: ' + (data.error || 'Unknown error'));
-                }
-            } catch (err) {
-                alert('❌ Failed to add product due to a server error.');
-                console.error(err);
+            } else {
+                errorMsg.classList.remove('hidden'); // Show if login fails
             }
         });
 
-        // Load orders with payment proof
-        async function loadOrders() {
-            const res = await fetch('/api/admin/orders');
-            const orders = await res.json();
-            const tbody = document.getElementById('ordersTableBody');
-            tbody.innerHTML = '';
-
-            orders.forEach(order => {
-                const itemsHtml = order.items.map(i => `
-                    <div class="flex items-center mb-2">
-                        <img src="${i.image}" alt="${i.name}" class="w-10 h-10 object-cover mr-2 rounded order-item-image" />
-                        <div>
-                            <div>${i.name} x${i.quantity}</div>
-                            <div class="text-xs text-gray-500">Size: ${i.size || '-'}</div>
-                        </div>
-                    </div>
-                `).join('');
-
-                const row = document.createElement('tr');
-                row.innerHTML = `
-                    <td class="border px-4 py-3">${order.fullName}</td>
-                    <td class="border px-4 py-3">${order.email}</td>
-                    <td class="border px-4 py-3">${order.phone}</td>
-                    <td class="border px-4 py-3">${order.address}</td>
-                    <td class="border px-4 py-3">${itemsHtml}</td>
-                    <td class="border px-4 py-3">
-                        ${order.paymentProof
-                            ? `<button onclick="openProofModal('${order.paymentProof}')" class="view-proof-button">View</button>`
-                            : '-'}
-                    </td>
-                    <td class="border px-4 py-3">${new Date(order.createdAt).toLocaleString()}</td>
-                `;
-                tbody.appendChild(row);
+        // Logout
+        document.getElementById('logoutBtn').addEventListener('click', async () => {
+            const res = await fetch('/api/admin/logout', {
+                method: 'POST',
+                credentials: 'include'
             });
+            if (res.ok) {
+                location.reload();
+            } else {
+                alert('Logout failed');
+            }
+        });
+    });
+
+    // Handle product submission
+    document.getElementById('productForm').addEventListener('submit', async function(e) {
+        e.preventDefault();
+        const form = e.target;
+        const formData = new FormData(form);
+        const sizes = [...form.querySelectorAll('.size-checkbox:checked')].map(cb => cb.value);
+        formData.append('sizes', JSON.stringify(sizes));
+
+        try {
+            const res = await fetch('/api/products', {
+                method: 'POST',
+                body: formData
+            });
+            const data = await res.json();
+            if (res.ok) {
+                alert(data.message || 'Product added successfully!');
+                form.reset();
+                loadOrders(); // Reload orders to potentially show new products
+            } else {
+                alert('❌ Failed to add product: ' + (data.error || 'Unknown error'));
+            }
+        } catch (err) {
+            alert('❌ Failed to add product due to a server error.');
+            console.error(err);
         }
-    </script>
+    });
+
+    // Load orders with payment proof
+    async function loadOrders() {
+        const res = await fetch('/api/admin/orders');
+        const orders = await res.json();
+        const tbody = document.getElementById('ordersTableBody');
+        tbody.innerHTML = '';
+
+        orders.forEach(order => {
+            const itemsHtml = order.items.map(i => `
+                <div class="flex items-center mb-2">
+                    <img src="${i.image}" alt="${i.name}" class="w-10 h-10 object-cover mr-2 rounded order-item-image" />
+                    <div>
+                        <div>${i.name} x${i.quantity}</div>
+                        <div class="text-xs text-gray-500">Size: ${i.size || '-'}</div>
+                    </div>
+                </div>
+            `).join('');
+
+            const row = document.createElement('tr');
+            row.innerHTML = `
+                <td class="border px-4 py-3">${order.fullName}</td>
+                <td class="border px-4 py-3">${order.email}</td>
+                <td class="border px-4 py-3">${order.phone}</td>
+                <td class="border px-4 py-3">${order.address}</td>
+                <td class="border px-4 py-3">${itemsHtml}</td>
+                <td class="border px-4 py-3">
+                    ${order.paymentProof
+                        ? `<button onclick="openProofModal('${order.paymentProof}')" class="view-proof-button">View</button>`
+                        : '-'}
+                </td>
+                <td class="border px-4 py-3">${new Date(order.createdAt).toLocaleString()}</td>
+            `;
+            tbody.appendChild(row);
+        });
+    }
+</script>
 </body>
 </html>

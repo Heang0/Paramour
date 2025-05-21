@@ -8,23 +8,184 @@
   <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css" rel="stylesheet">
   <link rel="stylesheet" href="style.css">
   <style>
-    #product-image:hover { transform: scale(1.05); }
-    .btn-black { background-color: black; color: white; border: none; padding: 10px 20px; }
-    .btn-black:hover { background-color: #333; }
-    .size-buttons button { margin: 3px; }
-    .size-buttons button.selected {
-      border: 2px solid black !important;
-      background-color: lightgray !important;
+  #product-image-display {
+    max-width: 100%;
+    height: auto;
+    border-radius: 5px;
+    margin-bottom: 15px; /* Space between main image and thumbnails on small screens */
+  }
+
+  .thumbnail-container {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px; /* Space between thumbnails */
+    margin-top: 10px; /* Space between main image and thumbnails */
+  }
+
+  .thumbnail-item {
+    width: 80px; /* Fixed width for thumbnails */
+    height: 80px; /* Fixed height for thumbnails */
+    cursor: pointer;
+    border: 2px solid transparent;
+    border-radius: 5px;
+    overflow: hidden; /* Ensures image fits within bounds */
+    display: flex;
+    justify-content: center;
+    align-items: center;
+  }
+
+  .thumbnail-item img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover; /* Ensures image covers the thumbnail area */
+    border-radius: 3px;
+  }
+
+  .thumbnail-item.selected {
+    border-color: black;
+  }
+
+  /* Existing styles from previous requests */
+  .btn-black {
+    background-color: black;
+    color: white;
+    border: none;
+    padding: 10px 20px;
+  }
+
+  .btn-black:hover {
+    background-color: #333;
+  }
+
+  .size-buttons button {
+    margin: 3px;
+  }
+
+  .size-buttons button.selected {
+    border: 2px solid black !important;
+    background-color: lightgray !important;
+  }
+
+  /* FIX: Button Container Alignment */
+.button-container {
+    margin-top: 20px;
+    margin-bottom: 30px; /* Added space below the buttons */
+    display: flex;
+    gap: 10px;
+    justify-content: flex-start;
+  }
+
+  /* Responsive adjustments for image layout */
+  @media (min-width: 768px) {
+    /* On medium devices and up (desktop) */
+    .product-image-section {
+      display: flex;
+      flex-direction: row; /* Thumbnails on the left, main image on the right */
+      gap: 20px; /* Space between thumbnail column and main image */
     }
-    .button-container { margin-top: 20px; display: flex; gap: 10px; }
+
+    .main-image-wrapper {
+      flex-grow: 1; /* Main image takes remaining space */
+      position: relative; /* For positioning prev/next buttons */
+    }
+
+    #product-image-display {
+      margin-bottom: 0; /* No bottom margin on larger screens */
+    }
+
+    .thumbnail-column {
+      flex-basis: 100px; /* Fixed width for thumbnail column */
+      flex-shrink: 0;
+    }
+
+    .thumbnail-container {
+      flex-direction: column; /* Stack thumbnails vertically */
+      margin-top: 0;
+    }
+
+    /* FIX: Styles for Previous/Next buttons on the main image */
+    .product-image-nav-btn {
+      position: absolute;
+      top: 50%; /* Vertically center the buttons */
+      background-color: rgba(0, 0, 0, 0.5); /* Semi-transparent black */
+      color: white;
+      border: none;
+      /* Adjusted size for desktop */
+      width: 30px; /* Smaller width */
+      height: 30px; /* Smaller height */
+      padding: 0; /* Remove padding */
+      line-height: 30px; /* Center text vertically */
+      text-align: center; /* Center text horizontally */
+      cursor: pointer;
+      font-size: 20px; /* Smaller font size */
+      border-radius: 50%; /* Still circular */
+      transition: background-color 0.3s ease;
+      z-index: 10;
+      transform: translateY(-50%); /* For perfect vertical centering */
+      /* Removed left/right percentages and translate(-50%) */
+    }
+
+    #prev-image-btn {
+      left: 10px; /* Fixed distance from the left edge of the main image wrapper */
+    }
+
+    #next-image-btn {
+      right: 10px; /* Fixed distance from the right edge of the main image wrapper */
+    }
+  }
+
+  @media (max-width: 767px) {
+    /* On small devices (phone) */
+    /* Optional: Adjust main image margins for phone if needed */
+    #product-image-display {
+      margin-bottom: 10px; /* Add some space below main image on phones */
+    }
+
+    /* FIX: Previous/Next buttons for small screens */
+    .product-image-nav-btn {
+      position: absolute; /* Already absolute */
+      top: 50%;
+      transform: translateY(-50%); /* Perfect vertical centering */
+      background-color: rgba(0, 0, 0, 0.5);
+      color: white;
+      border: none;
+      width: 40px; /* Slightly larger for touch */
+      height: 40px;
+      padding: 0;
+      line-height: 40px;
+      text-align: center;
+      cursor: pointer;
+      font-size: 30px; /* Larger icon */
+      font-weight: bold;
+      border-radius: 50%;
+      transition: background-color 0.3s ease;
+      z-index: 40;
+      margin-top: 30px;
+      margin-left: 20px;
+      margin-right: 20px;
+    }
+
+    #prev-image-btn {
+      left: 5px; /* Adjust as needed */
+    }
+
+    #next-image-btn {
+      right: 5px; /* Adjust as needed */
+    }
+
+    /* FIX: Align buttons on small screens */
+    .button-container {
+      justify-content: flex-start; /* Ensures buttons start from the left */
+    }
+  }
+</style>
   </style>
 </head>
 <body>
-  <!-- Navbar -->
   <nav class="navbar navbar-expand-lg navbar-light bg-light fixed-top">
     <a class="navbar-brand" href="index.html">Paramoúr</a>
     <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarNav"
-            aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
+      aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
       <span class="navbar-toggler-icon"></span>
     </button>
     <div class="collapse navbar-collapse" id="navbarNav">
@@ -43,17 +204,17 @@
         </li>
       </ul>
       <form class="form-inline d-flex ml-lg-3" id="globalSearchForm">
-        <input class="form-control mr-2" type="search" placeholder="Search" aria-label="Search" style="max-width: 180px;">
+        <input class="form-control mr-2" type="search" placeholder="Search" aria-label="Search"
+          style="max-width: 180px;">
         <button class="btn btn-outline-dark" type="submit">Search</button>
       </form>
     </div>
   </nav>
 
-  <!-- Cart Drawer -->
   <div id="cart-drawer" class="cart-drawer">
     <div class="cart-header d-flex justify-content-between align-items-center p-3">
       <strong>Your Cart - <span id="drawer-cart-count">0</span></strong>
-      <button class="close-cart btn btn-link text-dark font-weight-bold">&times;</button>
+      <button class="close-cart btn btn-link text-dark font-weight-bold" aria-label="Close cart">&times;</button>
     </div>
     <div id="drawer-cart-items" class="cart-body px-3"></div>
     <div class="cart-footer p-3">
@@ -63,20 +224,29 @@
     </div>
   </div>
 
-  <!-- Product Detail -->
   <div class="container mt-5 pt-5">
     <div class="row">
       <div class="col-md-6">
-        <img id="product-image" src="" class="img-fluid rounded" alt="Product Image" />
+        <div class="product-image-section">
+          <div class="thumbnail-column">
+            <div class="thumbnail-container" id="thumbnail-container">
+              </div>
+          </div>
+          <div class="main-image-wrapper">
+            <img id="product-image-display" src="" alt="Product Image" class="img-fluid rounded">
+            <button id="prev-image-btn" class="product-image-nav-btn d-none" aria-label="Previous image">&lt;</button>
+            <button id="next-image-btn" class="product-image-nav-btn d-none" aria-label="Next image">&gt;</button>
+          </div>
+        </div>
       </div>
       <div class="col-md-6">
-        <h2 id="product-name">Product Name</h2>
-        <p id="product-description">Product description goes here</p>
+        <h2 id="product-name">Loading Product...</h2>
+        <p id="product-description"></p>
         <p class="font-weight-bold">$<span id="product-price">0.00</span></p>
 
         <div class="form-group">
           <label>Available Sizes:</label>
-          <div class="size-buttons">
+          <div class="size-buttons" id="size-buttons-container">
             <button class="btn btn-outline-dark btn-sm size-option" data-size="S">S</button>
             <button class="btn btn-outline-dark btn-sm size-option" data-size="M">M</button>
             <button class="btn btn-outline-dark btn-sm size-option" data-size="L">L</button>
@@ -92,65 +262,195 @@
         </div>
       </div>
     </div>
+    <div id="product-not-found" class="text-danger text-center mt-5 d-none">
+      <h3>Product not found. Please try again later.</h3>
+    </div>
   </div>
 
-  <!-- Scripts -->
   <script src="https://code.jquery.com/jquery-3.5.1.slim.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@4.5.2/dist/js/bootstrap.bundle.min.js"></script>
   <script src="script.js"></script>
 
   <script>
+    // This script contains the logic for product detail page.
+    // Ensure 'script.js' contains 'addItemToCart', 'updateCartDisplay', and 'setupCartDrawerEvents' functions.
+
     document.addEventListener('DOMContentLoaded', async () => {
       const id = new URLSearchParams(window.location.search).get('id');
-      if (!id) return;
+      const productNotFoundDiv = document.getElementById('product-not-found');
+
+      if (!id) {
+        productNotFoundDiv.classList.remove('d-none');
+        document.querySelector('.container .row').classList.add('d-none'); // Hide product details
+        return;
+      }
 
       try {
+        // Fetch product data from API
         const res = await fetch(`/api/products/${id}`);
+        if (!res.ok) {
+          // Handle HTTP errors (e.g., 404 Not Found)
+          if (res.status === 404) {
+            throw new Error('Product not found');
+          }
+          throw new Error(`HTTP error! Status: ${res.status}`);
+        }
         const product = await res.json();
 
+        // Populate product details
         document.getElementById('product-name').textContent = product.name;
         document.getElementById('product-description').textContent = product.description || '';
         document.getElementById('product-price').textContent = parseFloat(product.price).toFixed(2);
-        document.getElementById('product-image').src = product.imageUrl || '';
 
-        const availableSizes = product.sizes || [];
-        document.querySelectorAll('.size-option').forEach(button => {
-          const size = button.dataset.size;
-          if (!availableSizes.includes(size)) {
-            button.disabled = true;
-            button.classList.add('disabled');
-          }
+        const productImageDisplay = document.getElementById('product-image-display');
+        const thumbnailContainer = document.getElementById('thumbnail-container');
+        const prevImageBtn = document.getElementById('prev-image-btn');
+        const nextImageBtn = document.getElementById('next-image-btn');
+
+        // Handle image URLs (prioritize imageUrls array, fall back to single imageUrl)
+        let imageUrls = Array.isArray(product.imageUrls) && product.imageUrls.length > 0
+          ? product.imageUrls.filter(url => typeof url === 'string' && url.trim() !== '')
+          : [];
+
+        if (imageUrls.length === 0 && typeof product.imageUrl === 'string' && product.imageUrl.trim() !== '') {
+          imageUrls = [product.imageUrl];
+        }
+
+        // Fallback for no images
+        if (imageUrls.length === 0) {
+          imageUrls.push('https://via.placeholder.com/400x400?text=No+Image');
+        }
+
+        let currentImageIndex = 0; // Keep track of the current image
+
+        // Function to update the main image and active thumbnail
+        function updateProductImage(index) {
+          currentImageIndex = (index + imageUrls.length) % imageUrls.length; // Loop through images
+          productImageDisplay.src = imageUrls[currentImageIndex];
+          productImageDisplay.alt = product.name || 'Product Image';
+
+          // Update selected state for thumbnails
+          document.querySelectorAll('.thumbnail-item').forEach((item, idx) => {
+            if (idx === currentImageIndex) {
+              item.classList.add('selected');
+            } else {
+              item.classList.remove('selected');
+            }
+          });
+        }
+
+        // Populate thumbnails
+        thumbnailContainer.innerHTML = ''; // Clear existing content
+        imageUrls.forEach((url, index) => {
+          const thumbnailItem = document.createElement('div');
+          thumbnailItem.classList.add('thumbnail-item');
+
+          const img = document.createElement('img');
+          img.src = url;
+          img.alt = `Thumbnail ${index + 1} for ${product.name}`;
+          thumbnailItem.appendChild(img);
+
+          thumbnailItem.addEventListener('click', () => {
+            updateProductImage(index); // Update main image on thumbnail click
+          });
+          thumbnailContainer.appendChild(thumbnailItem);
         });
 
+        // Set initial main image and select first thumbnail
+        updateProductImage(0);
+
+        // Show/hide image navigation buttons based on image count
+        if (imageUrls.length > 1) {
+          prevImageBtn.classList.remove('d-none');
+          nextImageBtn.classList.remove('d-none');
+        } else {
+          prevImageBtn.classList.add('d-none');
+          nextImageBtn.classList.add('d-none');
+        }
+
+        // Add event listeners for prev/next buttons
+        prevImageBtn.addEventListener('click', () => {
+          updateProductImage(currentImageIndex - 1);
+        });
+
+        nextImageBtn.addEventListener('click', () => {
+          updateProductImage(currentImageIndex + 1);
+        });
+
+        // Handle product sizes
+        const sizeButtonsContainer = document.getElementById('size-buttons-container');
         const selectedSizeInput = document.getElementById('selected-size');
         let selectedSize = '';
-        document.querySelectorAll('.size-option').forEach(button => {
-          button.addEventListener('click', () => {
-            if (button.disabled) return;
-            document.querySelectorAll('.size-option').forEach(btn => btn.classList.remove('selected'));
-            button.classList.add('selected');
-            selectedSize = button.dataset.size;
-            selectedSizeInput.value = selectedSize;
-          });
+
+        // Clear existing static size buttons (if any) and generate dynamically
+        sizeButtonsContainer.innerHTML = '';
+        const availableSizes = Array.isArray(product.sizes) ? product.sizes : [];
+
+        // Define a standard order for sizes if you have one
+        const sizeOrder = ['XS', 'S', 'M', 'L', 'XL', 'XXL'];
+
+        // Sort available sizes if needed (e.g., alphabetically or by custom order)
+        availableSizes.sort((a, b) => {
+            const indexA = sizeOrder.indexOf(a.toUpperCase());
+            const indexB = sizeOrder.indexOf(b.toUpperCase());
+            if (indexA !== -1 && indexB !== -1) return indexA - indexB;
+            return a.localeCompare(b); // Fallback for sizes not in standard order
         });
 
+
+        if (availableSizes.length > 0) {
+          availableSizes.forEach(size => {
+            const button = document.createElement('button');
+            button.classList.add('btn', 'btn-outline-dark', 'btn-sm', 'size-option');
+            button.dataset.size = size;
+            button.textContent = size;
+
+            button.addEventListener('click', () => {
+              document.querySelectorAll('.size-option').forEach(btn => btn.classList.remove('selected'));
+              button.classList.add('selected');
+              selectedSize = button.dataset.size;
+              selectedSizeInput.value = selectedSize;
+            });
+            sizeButtonsContainer.appendChild(button);
+          });
+        } else {
+          // If no sizes are available, display a message or disable add to cart
+          const noSizesMessage = document.createElement('p');
+          noSizesMessage.textContent = 'No sizes available for this product.';
+          noSizesMessage.classList.add('text-muted');
+          sizeButtonsContainer.appendChild(noSizesMessage);
+          document.getElementById('add-to-cart-btn').disabled = true; // Disable add to cart if no sizes
+        }
+
+
+// Add to cart functionality
         document.getElementById('add-to-cart-btn').addEventListener('click', () => {
           if (!selectedSize) {
-            alert('Please select a size.');
+            alert('Please select a size before adding to cart.');
             return;
           }
-          addItemToCart(id, product.name, product.price, selectedSize, product.imageUrl);
+          // Assuming addItemToCart is defined in script.js
+          if (typeof addItemToCart === 'function') {
+            addItemToCart(product._id, product.name, product.price, selectedSize, imageUrls[currentImageIndex]);
+
+            // alert('Product added to cart!'); // Removed this line
+          } else {
+            console.error('addItemToCart function not found in script.js');
+          }
         });
 
+        // Continue shopping button
         document.getElementById('continue-shopping-btn').addEventListener('click', () => {
           window.location.href = 'products.html';
         });
 
       } catch (err) {
-        console.error('Error loading product', err);
-        document.querySelector('.container').innerHTML = '<h3 class="text-danger text-center">Product not found.</h3>';
+        console.error('Error loading product:', err);
+        document.querySelector('.container .row').classList.add('d-none'); // Hide product details
+        productNotFoundDiv.classList.remove('d-none'); // Show "Product not found" message
       }
 
+      // Initialize cart display and drawer events (assuming these are in script.js)
       if (typeof updateCartDisplay === 'function') updateCartDisplay();
       if (typeof setupCartDrawerEvents === 'function') setupCartDrawerEvents();
     });

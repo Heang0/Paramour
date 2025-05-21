@@ -39,13 +39,16 @@ function updateCartDisplay() {
 }
 
 function removeItemFromCart(productId, size = '') {
-    cart = cart.filter(item => !(item.id == productId && item.size == size));
+    cart = cart.filter(item => {
+        return !(item.id == productId && (item.size || '') == (size || ''));
+    });
+
     updateCartDisplay();
     renderDrawerCart();
 }
 
 function updateItemQuantity(productId, size = '', action) {
-    const item = cart.find(p => p.id == productId && p.size == size);
+    const item = cart.find(p => p.id == productId && (p.size || '') == (size || ''));
     if (!item) return;
 
     if (action === 'increase') {
@@ -83,15 +86,15 @@ function renderDrawerCart() {
                         <small>Size: ${item.size || 'N/A'}</small>
                     </div>
                     <button class="remove-btn btn p-0 text-danger" title="Remove item"
-                        data-id="${item.id}" data-size="${item.size}">
+                        data-id="${item.id}" data-size="${item.size || ''}">
                         <i class="bi bi-trash" style="font-size: 1.3rem; color: black;"></i>
                     </button>
                 </div>
                 <div class="d-flex justify-content-between align-items-center mt-2">
                     <div>
-                        <button class="qty-btn qty-decrease" data-id="${item.id}" data-size="${item.size}" data-action="decrease">−</button>
+                        <button class="qty-btn qty-decrease" data-id="${item.id}" data-size="${item.size || ''}" data-action="decrease">−</button>
                         <span class="mx-2">${item.quantity}</span>
-                        <button class="qty-btn qty-increase" data-id="${item.id}" data-size="${item.size}" data-action="increase">+</button>
+                        <button class="qty-btn qty-increase" data-id="${item.id}" data-size="${item.size || ''}" data-action="increase">+</button>
                     </div>
                     <strong>$${(item.price * item.quantity).toFixed(2)}</strong>
                 </div>
@@ -106,7 +109,6 @@ function renderDrawerCart() {
 
     setupCartDrawerEventListeners();
 }
-
 
 function setupCartDrawerEventListeners() {
     const drawer = document.getElementById('drawer-cart-items');
@@ -131,7 +133,9 @@ function setupCartDrawerEventListeners() {
 }
 
 function addItemToCart(productId, name, price, size = '', image = '') {
-    const existingItem = cart.find(item => item.id == productId && item.size == size);
+    size = size || ''; // Ensure size is never undefined
+
+    const existingItem = cart.find(item => item.id == productId && (item.size || '') == size);
     if (existingItem) {
         existingItem.quantity++;
     } else {
@@ -166,7 +170,6 @@ function fetchProducts() {
                 } = product;
 
                 const productCard = document.createElement('div');
-                // productCard.className = 'col-6 col-md-4 col-lg-3 mb-4 product-card';
 
                 productCard.innerHTML = `
                     <div class="card border-0 shadow-sm h-100">
@@ -228,10 +231,11 @@ function setupCartDrawerEvents() {
     });
 }
 
-        document.addEventListener('DOMContentLoaded', () => {
-            updateCartDisplay();
-            renderDrawerCart();  // ✅ Fix: ensures event listeners are bound on initial load
-            setupCartDrawerEvents()
+// Initialize on page load
+document.addEventListener('DOMContentLoaded', () => {
+    updateCartDisplay();
+    renderDrawerCart();
+    setupCartDrawerEvents();
 
     const heroBtn = document.getElementById('hero-shop-now-btn');
     if (heroBtn) {
@@ -245,6 +249,7 @@ function setupCartDrawerEvents() {
     }
 });
 
+// Checkout button click
 const checkoutBtn = document.querySelector('#cart-drawer .btn-block.btn-dark.mb-2');
 if (checkoutBtn) {
     checkoutBtn.addEventListener('click', () => {
@@ -252,19 +257,18 @@ if (checkoutBtn) {
     });
 }
 
-
-// search
+// Search form handler
 document.addEventListener('DOMContentLoaded', () => {
-  const searchForm = document.getElementById('globalSearchForm');
-  const searchInput = document.getElementById('globalSearchInput');
+    const searchForm = document.getElementById('globalSearchForm');
+    const searchInput = document.getElementById('globalSearchInput');
 
-  if (searchForm && searchInput) {
-    searchForm.addEventListener('submit', function (e) {
-      e.preventDefault();
-      const query = searchInput.value.trim().toLowerCase();
-      if (query) {
-        window.location.href = `products.html?search=${encodeURIComponent(query)}`;
-      }
-    });
-  }
+    if (searchForm && searchInput) {
+        searchForm.addEventListener('submit', function (e) {
+            e.preventDefault();
+            const query = searchInput.value.trim().toLowerCase();
+            if (query) {
+                window.location.href = `products.html?search=${encodeURIComponent(query)}`;
+            }
+        });
+    }
 });
