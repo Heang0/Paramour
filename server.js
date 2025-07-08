@@ -6,14 +6,17 @@ const multer = require('multer');
 const cors = require('cors');
 const session = require('express-session');
 const path = require('path');
-
-const cloudinary = require('cloudinary').v2; // ADDED: Cloudinary setup
+const cloudinary = require('cloudinary').v2;
+const MongoStore = require('connect-mongo'); // For persistent session store
 
 const app = express();
 
-// ✅ CORS: Allow any origin temporarily (safe fix for Render crash)
+// Set the view engine to ejs if you have it (only uncomment if you actually use EJS)
+// app.set('view engine', 'ejs');
+
+// ✅ CORS: Allow any origin (for development, consider specific origins in production)
 app.use(cors({
-    origin: process.env.FRONTEND_URL || true,
+    origin: process.env.FRONTEND_URL || '*', // Use '*' for development if FRONTEND_URL isn't set, otherwise specify your frontend URL
     credentials: true
 }));
 
@@ -21,26 +24,38 @@ app.use(cors({
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));
 
-// ✅ Static folders (still useful for local development for non-uploaded assets)
-app.use('/uploads', express.static(path.join(__dirname, 'public/uploads')));
-app.use(express.static(path.join(__dirname, 'public')));
+// --- IMPORTANT: Static File Serving ---
+// Serve static files from the 'public' directory.
+// This MUST come BEFORE your API routes and the catch-all route.
+// When a request comes in for '/', Express will look for public/index.html by default.
+// When a request comes in for '/style.css', it looks for public/style.css, etc.
+app.use(express.static(path.join(__dirname, 'public'))); // Serve all static files from 'public' directory
 
-// ✅ Session setup
+// Optional: If you explicitly need '/uploads' path for existing local files.
+// For Cloudinary, file links are external URLs.
+// app.use('/uploads', express.static(path.join(__dirname, 'public/uploads')));
+
+
+// ✅ Session setup (Updated for production-ready MongoStore)
 app.use(session({
-    secret: process.env.SESSION_SECRET || 'default_secret',
+    secret: process.env.SESSION_SECRET || 'default_secret_please_change', // Use a strong, unique secret
     resave: false,
     saveUninitialized: false,
+    store: MongoStore.create({
+        mongoUrl: process.env.MONGODB_URI,
+        ttl: 14 * 24 * 60 * 60 // Session TTL (Time To Live) in seconds, 14 days
+    }),
     cookie: {
-        httpOnly: true,
-        sameSite: 'lax' // or 'none' if using HTTPS only
+        httpOnly: true, // Prevents client-side JS from accessing the cookie
+        sameSite: 'lax', // 'strict', 'lax', or 'none'. 'none' requires 'secure: true'
+        secure: process.env.NODE_ENV === 'production' // Set to true in production (requires HTTPS)
     }
 }));
 
-// ✅ Connect to MongoDB
-mongoose.connect(process.env.MONGODB_URI, {
-    useNewUrlParser: true, // This option is deprecated but harmless for now
-    useUnifiedTopology: true // This option is deprecated but harmless for now
-}).then(() => console.log("✅ Connected to MongoDB"))
+
+// ✅ Connect to MongoDB (Removed deprecated options)
+mongoose.connect(process.env.MONGODB_URI)
+    .then(() => console.log("✅ Connected to MongoDB"))
     .catch(err => console.error("❌ MongoDB error:", err));
 
 // --- Cloudinary API Setup ---
@@ -49,6 +64,38 @@ cloudinary.config({
     api_key: process.env.CLOUDINARY_API_KEY,
     api_secret: process.env.CLOUDINARY_API_SECRET
 });
+
+// --- Nodemailer Transporter Setup (REMOVED - no email notification) ---
+// If you decide to add email notifications later, uncomment and configure this section
+// along with installing nodemailer and setting up .env variables for email.
+/*
+const nodemailer = require('nodemailer');
+let transporter;
+if (process.env.SENDGRID_API_KEY) {
+    transporter = nodemailer.createTransport({
+        host: 'smtp.sendgrid.net',
+        port: 587,
+        secure: false, // Use TLS
+        auth: {
+            user: 'apikey',
+            pass: process.env.SENDGRID_API_KEY
+        }
+    });
+} else if (process.env.EMAIL_USER && process.env.EMAIL_PASS) {
+    transporter = nodemailer.createTransport({
+        host: process.env.EMAIL_HOST || 'smtp.gmail.com', // Default to Gmail if not specified
+        port: process.env.EMAIL_PORT || 587,
+        secure: process.env.EMAIL_PORT == 465, // true for 465, false for other ports like 587
+        auth: {
+            user: process.env.EMAIL_USER,
+            pass: process.env.EMAIL_PASS
+        }
+    });
+} else {
+    console.warn("Nodemailer transporter not configured. Email notifications will not be sent.");
+}
+*/
+
 
 // --- Multer Storage (using memory storage for temporary buffer for Cloudinary) ---
 const uploadToMemory = multer.memoryStorage();
@@ -65,7 +112,7 @@ const Product = mongoose.model('Product', new mongoose.Schema({
     name: String,
     price: Number,
     description: String,
-    imageUrls: [String], // Will store Cloudinary secure_url
+    imageUrls: [String],
     sizes: [String],
     createdAt: { type: Date, default: Date.now }
 }));
@@ -75,15 +122,16 @@ const Order = mongoose.model('Order', new mongoose.Schema({
     email: String,
     address: String,
     phone: String,
-    paymentProof: String, // Store Cloudinary secure_url
+    paymentProof: String,
     items: [{
         productId: String,
         name: String,
         quantity: Number,
         price: Number,
         size: String,
-        image: String // Cloudinary secure_url for item image
+        image: String
     }],
+    totalAmount: Number,
     createdAt: { type: Date, default: Date.now }
 }));
 
@@ -92,7 +140,7 @@ const Admin = mongoose.model('Admin', new mongoose.Schema({
     password: { type: String, required: true }
 }));
 
-// Function to upload a file to Cloudinary (FIXED PROMISE HANDLING)
+// Function to upload a file to Cloudinary
 async function uploadFileToCloudinary(fileBuffer, folderName = 'clothez_store') {
     return new Promise((resolve, reject) => {
         const uploadStream = cloudinary.uploader.upload_stream(
@@ -100,28 +148,19 @@ async function uploadFileToCloudinary(fileBuffer, folderName = 'clothez_store') 
             (error, result) => {
                 if (error) {
                     console.error('Cloudinary upload error:', error);
-                    // Ensure Promise is rejected with a clear error
                     return reject(new Error('Failed to upload to Cloudinary: ' + error.message));
                 }
                 console.log("DEBUG: Cloudinary secure_url received:", result.secure_url);
-                // Resolve the Promise with the secure URL
                 resolve(result.secure_url);
             }
         );
-        // End the stream with the file buffer
         uploadStream.end(fileBuffer);
     });
 }
 
-
 // ✅ Admin Login
 app.post('/api/admin/login', (req, res) => {
     const { username, password } = req.body;
-
-    console.log("🛂 Submitted username:", username);
-    console.log("🛂 Submitted password:", password);
-    console.log("🔒 ENV username:", process.env.ADMIN_USERNAME);
-    console.log("🔒 ENV password:", process.env.ADMIN_PASSWORD);
 
     if (
         username?.trim() === process.env.ADMIN_USERNAME &&
@@ -167,8 +206,6 @@ app.post('/api/products', uploadProductMiddleware, async (req, res) => {
         }
 
         let imageUrls = [];
-
-        // Handle main_image
         if (uploadedFiles && uploadedFiles.main_image && uploadedFiles.main_image.length > 0) {
             const mainImageFile = uploadedFiles.main_image[0];
             const cloudinaryLink = await uploadFileToCloudinary(
@@ -177,11 +214,9 @@ app.post('/api/products', uploadProductMiddleware, async (req, res) => {
             );
             imageUrls.push(cloudinaryLink);
         } else {
-            // A main image is required for a new product
             return res.status(400).json({ error: 'A main product image is required.' });
         }
 
-        // Handle carousel_images
         if (uploadedFiles && uploadedFiles.carousel_images && uploadedFiles.carousel_images.length > 0) {
             for (const file of uploadedFiles.carousel_images) {
                 const cloudinaryLink = await uploadFileToCloudinary(
@@ -196,7 +231,7 @@ app.post('/api/products', uploadProductMiddleware, async (req, res) => {
             name,
             price: parseFloat(price),
             description,
-            imageUrls: imageUrls, // Store the array of URLs
+            imageUrls: imageUrls,
             sizes: parsedSizes
         });
 
@@ -249,13 +284,11 @@ app.put('/api/products/:id', uploadProductMiddleware, async (req, res) => {
             }
         }
 
-        // Fetch the existing product to retain current image URLs if no new ones are uploaded
         const existingProduct = await Product.findById(productId);
         if (!existingProduct) return res.status(404).json({ error: 'Product not found.' });
 
-        let imageUrls = existingProduct.imageUrls || []; // Start with existing image URLs
+        let imageUrls = existingProduct.imageUrls || [];
 
-        // Handle main_image: If a new main image is uploaded, it replaces the first image in the array
         if (uploadedFiles && uploadedFiles.main_image && uploadedFiles.main_image.length > 0) {
             const mainImageFile = uploadedFiles.main_image[0];
             const cloudinaryLink = await uploadFileToCloudinary(
@@ -263,31 +296,29 @@ app.put('/api/products/:id', uploadProductMiddleware, async (req, res) => {
                 'clothez_store_products'
             );
             if (imageUrls.length > 0) {
-                imageUrls[0] = cloudinaryLink; // Replace the first image
+                imageUrls[0] = cloudinaryLink;
             } else {
-                imageUrls.push(cloudinaryLink); // Add as the first image if array was empty
+                imageUrls.push(cloudinaryLink);
             }
         }
 
-        // Handle carousel_images: New carousel images are added to the existing array
         if (uploadedFiles && uploadedFiles.carousel_images && uploadedFiles.carousel_images.length > 0) {
             for (const file of uploadedFiles.carousel_images) {
                 const cloudinaryLink = await uploadFileToCloudinary(
                     file.buffer,
                     'clothez_store_products'
                 );
-                imageUrls.push(cloudinaryLink); // Add new carousel images
+                imageUrls.push(cloudinaryLink);
             }
         }
 
-        // Use findByIdAndUpdate for atomic update and to bypass VersionError
         const updatedProduct = await Product.findByIdAndUpdate(productId, {
             name: name,
             price: parseFloat(price),
             description: description,
             sizes: parsedSizes,
-            imageUrls: imageUrls // Update with new/retained image URLs
-        }, { new: true, runValidators: true }); // `new: true` returns the updated doc
+            imageUrls: imageUrls
+        }, { new: true, runValidators: true });
 
         if (!updatedProduct) return res.status(404).json({ error: 'Product not found after update attempt.' });
 
@@ -306,19 +337,6 @@ app.delete('/api/products/:id', async (req, res) => {
 
         if (!productToDelete) return res.status(404).json({ error: 'Product not found' });
 
-        // Optional: Implement Cloudinary delete if you want to remove images from Cloudinary
-        // when a product is deleted. This requires storing public_id from Cloudinary response.
-        /*
-        for (const url of productToDelete.imageUrls) {
-            // You'd need to extract public_id from the Cloudinary URL or store it separately
-            // Example: const publicId = getPublicIdFromCloudinaryUrl(url);
-            // if (publicId) {
-            //     await cloudinary.uploader.destroy(publicId);
-            //     console.log(`Cloudinary image ${publicId} deleted.`);
-            // }
-        }
-        */
-
         await Product.deleteOne({ _id: productId });
         res.json({ message: 'Product deleted successfully!' });
     } catch (err) {
@@ -327,7 +345,7 @@ app.delete('/api/products/:id', async (req, res) => {
     }
 });
 
-// ✅ Order APIs: Place New Order
+// ✅ Order APIs: Place New Order (NO EMAIL NOTIFICATION)
 app.post('/api/orders', uploadPaymentProofMiddleware, async (req, res) => {
     try {
         const {
@@ -335,7 +353,8 @@ app.post('/api/orders', uploadPaymentProofMiddleware, async (req, res) => {
             customerEmail,
             customerAddress,
             customerPhone,
-            items
+            items,
+            totalAmount
         } = req.body;
 
         let parsedItems;
@@ -355,7 +374,7 @@ app.post('/api/orders', uploadPaymentProofMiddleware, async (req, res) => {
             const file = req.file;
             paymentProofLink = await uploadFileToCloudinary(
                 file.buffer,
-                'clothez_store_payment_proofs' // Specific folder for payment proofs
+                'clothez_store_payment_proofs'
             );
         } else {
             return res.status(400).json({ error: 'Payment proof is required' });
@@ -367,10 +386,16 @@ app.post('/api/orders', uploadPaymentProofMiddleware, async (req, res) => {
             address: customerAddress,
             phone: customerPhone,
             paymentProof: paymentProofLink,
-            items: parsedItems
+            items: parsedItems,
+            totalAmount: parseFloat(totalAmount)
         });
 
         await order.save();
+
+        // Email Notification Code (REMOVED)
+        // If you decide to add email notifications later, re-add nodemailer setup
+        // and the mailOptions/transporter.sendMail(...) block here.
+
         res.json({ message: 'Order saved successfully', orderId: order._id });
     } catch (err) {
         console.error('❌ Error saving order:', err);
@@ -389,13 +414,16 @@ app.get('/api/admin/orders', async (req, res) => {
     }
 });
 
-// ✅ Catch-all route to serve frontend (for React or HTML)
+// ✅ Catch-all route to serve frontend (for HTML SPA)
+// This MUST be the LAST route defined. It acts as a fallback for any route not matched by
+// previous static file serving or API routes.
 app.get('*', (req, res) => {
-    res.sendFile(path.join(__dirname, 'public', 'index.html'));
+    res.sendFile(path.resolve(__dirname, 'public', 'index.html'));
 });
 
+
 // ✅ Start server
-const PORT = process.env.PORT || 3000;
+const PORT = process.env.PORT || 3000; // Render sets process.env.PORT to 10000
 app.listen(PORT, () => {
     console.log(`🚀 Server running on port ${PORT}`);
 });
