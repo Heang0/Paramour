@@ -159,8 +159,20 @@ async function uploadFileToCloudinary(fileBuffer, folderName = 'clothez_store') 
 }
 
 // ✅ Admin Login
+// In server.js, inside the app.post('/api/admin/login', ...) route:
 app.post('/api/admin/login', (req, res) => {
     const { username, password } = req.body;
+
+    // --- ADD THESE DEBUG CONSOLE LOGS ---
+    console.log("--- ADMIN LOGIN DEBUGGING ---");
+    console.log(`Submitted Username (from form): "${username}" (length: ${username?.length || 0})`);
+    console.log(`Submitted Password (from form): "${password}" (length: ${password?.length || 0})`);
+    console.log(`ENV ADMIN_USERNAME: "${process.env.ADMIN_USERNAME}" (length: ${process.env.ADMIN_USERNAME?.length || 0})`);
+    console.log(`ENV ADMIN_PASSWORD: "${process.env.ADMIN_PASSWORD}" (length: ${process.env.ADMIN_PASSWORD?.length || 0})`);
+    console.log(`Comparison result username: ${username?.trim() === process.env.ADMIN_USERNAME?.trim()}`);
+    console.log(`Comparison result password: ${password?.trim() === process.env.ADMIN_PASSWORD?.trim()}`);
+    console.log("-----------------------------");
+    // --- END DEBUG CONSOLE LOGS ---
 
     if (
         username?.trim() === process.env.ADMIN_USERNAME &&
@@ -174,7 +186,6 @@ app.post('/api/admin/login', (req, res) => {
         res.status(401).json({ error: 'Invalid credentials' });
     }
 });
-
 // ✅ Logout
 app.post('/api/admin/logout', (req, res) => {
     req.session.destroy(() => {
