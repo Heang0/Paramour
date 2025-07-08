@@ -1,0 +1,9 @@
+# Environment variables
+/.env
+
+# Other common ignores (you might already have these)
+node_modules/
+npm-debug.log
+.DS_Store
+*.log
+/public/uploads/ # If you were storing local uploads, though Cloudinary handles this now
