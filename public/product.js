@@ -16,10 +16,16 @@ window.addEventListener('DOMContentLoaded', () => {
       if (!product) throw new Error("No product data returned.");
 
       document.getElementById('product-name').textContent = product.name;
-document.getElementById('product-price').textContent = product.price.toFixed(2);
-document.getElementById('product-description').textContent = product.description || '';
-document.getElementById('product-image').src = product.imageUrl; // ✅ FIXED
-document.getElementById('product-image').alt = product.name;
+      document.getElementById('product-price').textContent = product.price.toFixed(2);
+      document.getElementById('product-description').textContent = product.description || '';
+
+      // Ensure imageUrls is an array and pick the first one for the main display
+      const imageUrl = (product.imageUrls && product.imageUrls.length > 0)
+                       ? product.imageUrls[0]
+                       : 'https://via.placeholder.com/200x200?text=No+Image';
+
+      document.getElementById('product-image').src = imageUrl;
+      document.getElementById('product-image').alt = product.name;
 
     })
     .catch(error => {

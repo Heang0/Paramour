@@ -335,9 +335,13 @@
                     const imageContainer = document.createElement('div');
                     imageContainer.classList.add('product-image-container');
                     const img = document.createElement('img');
-                    img.src = product.imageUrl || 'https://via.placeholder.com/200x200?text=No+Image';
+                    // Use the first image from imageUrls array, with a fallback
+                    const displayImageUrl = product.imageUrls && product.imageUrls.length > 0 ? product.imageUrls[0] : 'https://via.placeholder.com/200x200?text=No+Image';
+                    img.src = displayImageUrl;
                     img.alt = product.name;
                     img.classList.add('product-image');
+                    // Add an onerror handler for images that fail to load
+                    img.onerror = "this.onerror=null;this.src='https://via.placeholder.com/200x200?text=No+Image';";
                     imageContainer.appendChild(img);
 
                     const infoDiv = document.createElement('div');
@@ -353,7 +357,8 @@
                     addToCartBtn.classList.add('add-to-cart-btn');
                     addToCartBtn.addEventListener('click', (event) => {
                         event.stopPropagation();
-                        addItemToCart(product._id, product.name, product.price, product.size, product.imageUrl);
+                        // Pass the corrected image URL to addItemToCart
+                        addItemToCart(product._id, product.name, product.price, '', displayImageUrl);
                     });
 
                     productCard.appendChild(imageContainer);
@@ -373,9 +378,9 @@
 
             function fetchProducts(searchQuery = null) {
                 let apiUrl = '/api/products';
-                if (searchQuery) {
-                    apiUrl += `?search=${searchQuery}`;
-                }
+                // No need to append search query to API URL for client-side filtering,
+                // but keep it if you plan to implement server-side search later.
+                // For now, we fetch all and filter on client.
 
                 fetch(apiUrl)
                     .then(response => {
@@ -386,7 +391,7 @@
                     })
                     .then(products => {
                         allProducts = products;
-                       const filteredProducts = searchQuery
+                        const filteredProducts = searchQuery
                             ? products.filter(product =>
                                 product.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
                                 (product.description || '').toLowerCase().includes(searchQuery.toLowerCase())
@@ -403,6 +408,24 @@
 
             const initialSearchQuery = getQueryParam('search');
             fetchProducts(initialSearchQuery);
+
+            // Event listener for the global search form on products.html
+            const globalSearchForm = document.getElementById('globalSearchForm');
+            const globalSearchInput = document.getElementById('globalSearchInput');
+
+            if (globalSearchForm && globalSearchInput) {
+                globalSearchForm.addEventListener('submit', function (e) {
+                    e.preventDefault();
+                    const query = globalSearchInput.value.trim();
+                    if (query) {
+                        // Re-fetch and render products with the search query
+                        fetchProducts(query);
+                    } else {
+                        // If search box is cleared, show all products
+                        fetchProducts();
+                    }
+                });
+            }
         });
     </script>
 </body>

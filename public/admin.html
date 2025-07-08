@@ -32,7 +32,13 @@
         .admin-table th,
         .admin-table td {
             border-color: #4a5568;
+            color: #f7fafc; /* Ensure text is visible in inputs */
         }
+        .admin-form input.text-black,
+        .admin-form textarea.text-black {
+            color: black; /* Override for specific inputs if needed */
+        }
+
 
         .admin-form button {
             background-color: #4a5568; /* Dark button */
@@ -54,13 +60,13 @@
             background-color: #c53030;
         }
 
-        .view-proof-button {
+        .view-proof-button, .edit-button, .delete-button {
             color: #64b5f6; /* Blue link */
             text-decoration: underline;
             cursor: pointer;
         }
 
-        .view-proof-button:hover {
+        .view-proof-button:hover, .edit-button:hover, .delete-button:hover {
             color: #4299e1;
         }
 
@@ -91,7 +97,7 @@
             background-color: #8795a1;
         }
 
-        .order-item-image {
+        .order-item-image, .product-thumb-image {
             width: 40px;
             height: 40px;
             object-fit: cover;
@@ -120,7 +126,7 @@
                 <button id="logoutBtn" class="logout-button px-4 py-2 rounded hover:bg-red-700">Logout</button>
             </div>
 
-       <section class="admin-card p-6 rounded-lg shadow-md mb-8">
+            <section class="admin-card p-6 rounded-lg shadow-md mb-8">
                 <h2 class="text-xl font-bold mb-4 admin-heading">Add New Product</h2>
                 <form id="productForm" enctype="multipart/form-data" class="grid gap-4 md:grid-cols-2 lg:grid-cols-3 admin-form">
                     <input type="text" name="name" placeholder="Product Name" required class="border p-2 rounded col-span-full md:col-span-1 lg:col-span-1 text-black" />
@@ -130,10 +136,12 @@
                     <div class="col-span-full md:col-span-1 lg:col-span-1">
                         <label for="main_image" class="block text-gray-400 text-sm font-bold mb-2">Product Image (Main)</label>
                         <input type="file" name="main_image" accept="image/*" class="border p-2 rounded w-full text-gray-400" id="main_image" />
+                        <img id="main-image-preview" src="#" alt="Main Image Preview" class="w-20 h-20 object-cover mt-2 rounded hidden" />
                     </div>
                     <div class="col-span-full md:col-span-1 lg:col-span-1">
                         <label for="carousel_images" class="block text-gray-400 text-sm font-bold mb-2">Product Images (Carousel - Multiple)</label>
                         <input type="file" name="carousel_images" multiple accept="image/*" class="border p-2 rounded w-full text-gray-400" id="carousel_images" />
+                        <div id="carousel-images-preview" class="flex flex-wrap gap-2 mt-2"></div>
                     </div>
                     <div class="col-span-full">
                         <label class="block mt-2 font-semibold text-gray-400">Available Sizes:</label>
@@ -147,6 +155,24 @@
                     </div>
                     <button type="submit" class="mt-2 px-6 py-2 rounded hover:bg-gray-700 col-span-full">Add Product</button>
                 </form>
+            </section>
+
+            <section id="products-list" class="mb-8">
+                <h2 class="text-xl font-bold mb-4 admin-heading">All Products</h2>
+                <div class="overflow-x-auto admin-card rounded-lg shadow">
+                    <table class="min-w-full text-sm text-left text-gray-400 admin-table">
+                        <thead class="bg-gray-700 text-gray-300">
+                            <tr>
+                                <th class="px-4 py-3">Image</th>
+                                <th class="px-4 py-3">Name</th>
+                                <th class="px-4 py-3">Price</th>
+                                <th class="px-4 py-3">Sizes</th>
+                                <th class="px-4 py-3">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="productsTableBody"></tbody>
+                    </table>
+                </div>
             </section>
 
             <section id="orders" class="mb-8">
@@ -178,6 +204,42 @@
         </div>
     </div>
 
+    <div id="edit-product-modal" class="fixed inset-0 bg-black bg-opacity-80 flex items-center justify-center hidden z-50">
+        <div class="relative max-w-2xl w-full admin-card p-6 rounded-lg shadow-lg">
+            <h2 class="text-xl font-bold mb-4 admin-heading">Edit Product</h2>
+            <form id="editProductForm" enctype="multipart/form-data" class="grid gap-4 md:grid-cols-2 admin-form">
+                <input type="hidden" id="edit-product-id" name="id" />
+                <input type="text" id="edit-product-name" name="name" placeholder="Product Name" required class="border p-2 rounded col-span-full md:col-span-1 text-black" />
+                <input type="number" id="edit-product-price" name="price" step="0.01" placeholder="Price" required class="border p-2 rounded col-span-full md:col-span-1 text-black" />
+                <textarea id="edit-product-description" name="description" placeholder="Description" class="border p-2 rounded col-span-full text-black"></textarea>
+
+                <div class="col-span-full md:col-span-1">
+                    <label for="edit_main_image" class="block text-gray-400 text-sm font-bold mb-2">Product Image (Main)</label>
+                    <input type="file" name="main_image" accept="image/*" class="border p-2 rounded w-full text-gray-400" id="edit_main_image" />
+                    <img id="current-main-image" src="" alt="Current Main Image" class="w-20 h-20 object-cover mt-2 rounded hidden" />
+                </div>
+                <div class="col-span-full md:col-span-1">
+                    <label for="edit_carousel_images" class="block text-gray-400 text-sm font-bold mb-2">Product Images (Carousel - Multiple)</label>
+                    <input type="file" name="carousel_images" multiple accept="image/*" class="border p-2 rounded w-full text-gray-400" id="edit_carousel_images" />
+                    <div id="current-carousel-images" class="flex flex-wrap gap-2 mt-2"></div>
+                </div>
+                <div class="col-span-full">
+                    <label class="block mt-2 font-semibold text-gray-400">Available Sizes:</label>
+                    <div class="flex flex-wrap gap-2 mt-2 mb-4" id="edit-size-checkboxes">
+                        <label class="text-gray-400"><input type="checkbox" class="edit-size-checkbox mr-1" value="S">S</label>
+                        <label class="text-gray-400"><input type="checkbox" class="edit-size-checkbox mr-1" value="M">M</label>
+                        <label class="text-gray-400"><input type="checkbox" class="edit-size-checkbox mr-1" value="L">L</label>
+                        <label class="text-gray-400"><input type="checkbox" class="edit-size-checkbox mr-1" value="XL">XL</label>
+                        <label class="text-gray-400"><input type="checkbox" class="edit-size-checkbox mr-1" value="XXL">XXL</label>
+                    </div>
+                </div>
+                <button type="submit" class="mt-2 px-6 py-2 rounded hover:bg-gray-700 col-span-full">Save Changes</button>
+            </form>
+            <button onclick="closeEditProductModal()" class="absolute top-2 right-2 proof-modal-close font-bold text-lg">&times;</button>
+        </div>
+    </div>
+
+
    <script>
     function openProofModal(imgUrl) {
         document.getElementById('proof-modal-img').src = imgUrl;
@@ -188,14 +250,53 @@
         document.getElementById('proof-modal').classList.add('hidden');
     }
 
+    function openEditProductModal(product) {
+        document.getElementById('edit-product-id').value = product._id;
+        document.getElementById('edit-product-name').value = product.name;
+        document.getElementById('edit-product-price').value = product.price;
+        document.getElementById('edit-product-description').value = product.description;
+
+        // Populate current main image
+        const currentMainImage = document.getElementById('current-main-image');
+        if (product.imageUrls && product.imageUrls.length > 0) {
+            currentMainImage.src = product.imageUrls[0];
+            currentMainImage.classList.remove('hidden');
+        } else {
+            currentMainImage.classList.add('hidden');
+        }
+
+        // Populate current carousel images
+        const currentCarouselImagesDiv = document.getElementById('current-carousel-images');
+        currentCarouselImagesDiv.innerHTML = '';
+        if (product.imageUrls && product.imageUrls.length > 1) {
+            product.imageUrls.slice(1).forEach(url => {
+                const img = document.createElement('img');
+                img.src = url;
+                img.alt = 'Carousel Image';
+                img.classList.add('w-16', 'h-16', 'object-cover', 'rounded', 'product-thumb-image');
+                currentCarouselImagesDiv.appendChild(img);
+            });
+        }
+
+        // Populate sizes checkboxes
+        document.querySelectorAll('.edit-size-checkbox').forEach(checkbox => {
+            checkbox.checked = product.sizes.includes(checkbox.value);
+        });
+
+        document.getElementById('edit-product-modal').classList.remove('hidden');
+    }
+
+    function closeEditProductModal() {
+        document.getElementById('edit-product-modal').classList.add('hidden');
+    }
+
+
     document.addEventListener('DOMContentLoaded', async () => {
         const loginSection = document.getElementById('login-section');
         const adminPanel = document.getElementById('admin-panel');
         const errorMsg = document.getElementById('login-error');
 
-        // --- ADD THIS LINE ---
         errorMsg.classList.add('hidden'); // Ensure error message is hidden on page load
-        // ---------------------
 
         // Check session
         const authRes = await fetch('/api/admin/check-auth', { credentials: 'include' });
@@ -204,6 +305,7 @@
             loginSection.classList.add('hidden');
             adminPanel.classList.remove('hidden');
             loadOrders();
+            loadProducts(); // Load products for admin panel
         }
 
         // Login form
@@ -225,6 +327,7 @@
                 loginSection.classList.add('hidden');
                 adminPanel.classList.remove('hidden');
                 loadOrders();
+                loadProducts(); // Load products after successful login
             } else {
                 errorMsg.classList.remove('hidden'); // Show if login fails
             }
@@ -242,13 +345,54 @@
                 alert('Logout failed');
             }
         });
+
+        // Image Previews for Add Product Form
+        const mainImageInput = document.getElementById('main_image');
+        const mainImagePreview = document.getElementById('main-image-preview');
+        if (mainImageInput) {
+            mainImageInput.addEventListener('change', function() {
+                const file = this.files[0];
+                if (file) {
+                    const reader = new FileReader();
+                    reader.onload = (e) => {
+                        mainImagePreview.src = e.target.result;
+                        mainImagePreview.classList.remove('hidden');
+                    };
+                    reader.readAsDataURL(file);
+                } else {
+                    mainImagePreview.classList.add('hidden');
+                    mainImagePreview.src = '#';
+                }
+            });
+        }
+
+        const carouselImagesInput = document.getElementById('carousel_images');
+        const carouselImagesPreview = document.getElementById('carousel-images-preview');
+        if (carouselImagesInput) {
+            carouselImagesInput.addEventListener('change', function() {
+                carouselImagesPreview.innerHTML = '';
+                if (this.files) {
+                    Array.from(this.files).forEach(file => {
+                        const reader = new FileReader();
+                        reader.onload = (e) => {
+                            const img = document.createElement('img');
+                            img.src = e.target.result;
+                            img.classList.add('w-16', 'h-16', 'object-cover', 'rounded', 'product-thumb-image');
+                            carouselImagesPreview.appendChild(img);
+                        };
+                        reader.readAsDataURL(file);
+                    });
+                }
+            });
+        }
     });
 
-    // Handle product submission
+    // Handle Add Product submission
     document.getElementById('productForm').addEventListener('submit', async function(e) {
         e.preventDefault();
         const form = e.target;
         const formData = new FormData(form);
+
         const sizes = [...form.querySelectorAll('.size-checkbox:checked')].map(cb => cb.value);
         formData.append('sizes', JSON.stringify(sizes));
 
@@ -261,7 +405,9 @@
             if (res.ok) {
                 alert(data.message || 'Product added successfully!');
                 form.reset();
-                loadOrders(); // Reload orders to potentially show new products
+                document.getElementById('main-image-preview').classList.add('hidden');
+                document.getElementById('carousel-images-preview').innerHTML = '';
+                loadProducts(); // Reload products to show new product
             } else {
                 alert('❌ Failed to add product: ' + (data.error || 'Unknown error'));
             }
@@ -270,6 +416,36 @@
             console.error(err);
         }
     });
+
+    // Handle Edit Product submission
+    document.getElementById('editProductForm').addEventListener('submit', async function(e) {
+        e.preventDefault();
+        const form = e.target;
+        const formData = new FormData(form);
+        const productId = document.getElementById('edit-product-id').value;
+
+        const sizes = [...form.querySelectorAll('.edit-size-checkbox:checked')].map(cb => cb.value);
+        formData.append('sizes', JSON.stringify(sizes));
+
+        try {
+            const res = await fetch(`/api/products/${productId}`, {
+                method: 'PUT',
+                body: formData
+            });
+            const data = await res.json();
+            if (res.ok) {
+                alert(data.message || 'Product updated successfully!');
+                closeEditProductModal();
+                loadProducts(); // Reload products
+            } else {
+                alert('❌ Failed to update product: ' + (data.error || 'Unknown error'));
+            }
+        } catch (err) {
+            alert('❌ Failed to update product due to a server error.');
+            console.error(err);
+        }
+    });
+
 
     // Load orders with payment proof
     async function loadOrders() {
@@ -305,6 +481,54 @@
             `;
             tbody.appendChild(row);
         });
+    }
+
+    // Load Products for Admin Panel
+    async function loadProducts() {
+        const res = await fetch('/api/products');
+        const products = await res.json();
+        const tbody = document.getElementById('productsTableBody');
+        tbody.innerHTML = '';
+
+        products.forEach(product => {
+            const row = document.createElement('tr');
+            row.innerHTML = `
+                <td class="border px-4 py-3">
+                    <img src="${product.imageUrls && product.imageUrls.length > 0 ? product.imageUrls[0] : 'https://via.placeholder.com/40x40?text=No+Image'}" 
+                         alt="${product.name}" class="product-thumb-image" />
+                </td>
+                <td class="border px-4 py-3">${product.name}</td>
+                <td class="border px-4 py-3">$${product.price.toFixed(2)}</td>
+                <td class="border px-4 py-3">${product.sizes.join(', ')}</td>
+                <td class="border px-4 py-3">
+                    <button onclick="openEditProductModal(${JSON.stringify(product).replace(/"/g, '&quot;')})" class="edit-button mr-2">Edit</button>
+                    <button onclick="deleteProduct('${product._id}')" class="delete-button">Delete</button>
+                </td>
+            `;
+            tbody.appendChild(row);
+        });
+    }
+
+    // Delete Product
+    async function deleteProduct(productId) {
+        if (!confirm('Are you sure you want to delete this product?')) {
+            return;
+        }
+        try {
+            const res = await fetch(`/api/products/${productId}`, {
+                method: 'DELETE',
+            });
+            const data = await res.json();
+            if (res.ok) {
+                alert(data.message || 'Product deleted successfully!');
+                loadProducts(); // Reload products
+            } else {
+                alert('❌ Failed to delete product: ' + (data.error || 'Unknown error'));
+            }
+        } catch (err) {
+            alert('❌ Failed to delete product due to a server error.');
+            console.error(err);
+        }
     }
 </script>
 </body>
